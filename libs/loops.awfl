@@ -1,0 +1,118 @@
+# Control structures #
+
+include stack
+
+
+## Numbered "for"-like loop function ##
+def for  3                     # first last+1 step function
+  4 tor                        # F f l s
+  rot3                         # F l s f
+  :for                         # F l s f "for"
+  :count push                  # F l s {count->first}
+  :step push                   # F l {count, step->step}
+  :last push                   # F {count, step,last}
+  :func push                   # {count, step, last, func}
+  as for_                      # for_ -> {}
+
+  def for'  0                  # -
+    # first, check if loop has finished
+    for_                       # {}
+    :count pull                # {} count
+    swap                       # count {}
+    :last pull                 # count {} last
+    rot3                       # {} last count
+    eq if break pop            # {} (count == last)
+
+    # second, call the function
+    :count pull                # {} count
+    swap                       # count {}
+    :func pull                 # count {} F
+    popnos apply               # F(count)
+
+    # third, increment the counter
+    for_                       # {}
+    :count pull                # {} count
+    swap                       # count {}
+    :step pull                 # count {} step
+    rot3                       # {} step count
+    +                          # {} count+step
+    swap                       # count+step {}
+    :count push                # {}
+    up .for_                   # for_ -> {}
+    for'                       # tail recursion
+  end  nil
+  for'                         # start the loop
+end nil                        # loop could modify the stack
+
+assert
+  256 256
+from
+  def 2times  1
+    2 *         # increase value
+  end  1        # function that multiplies by 2
+    assert 4 from 2 2times end    # nested test
+    assert 16 from 8 2times end   # nested test
+
+  def loop-func  2
+    pop         # remove for-loop counter (not needed here)
+    2times      # multiply
+  end  1
+  1                               # initial value
+  1 9 1 &loop-func for               # count upwards: 9 = > last
+  1                               # initial value
+  8 0 -1 &loop-func for              # count downwards: 0 = < last
+end
+
+
+## Reduce over a list ##
+def reduce  3         # list initial func(2->1)
+  as func
+  as last
+  :num pull as num    # elements in l
+  as l
+
+  def each  1     # i
+    l swap pull   # l elem-i
+    popnos        # elem-i
+    last          # elem-i last
+    swap          # last elem-i
+    ...func apply    # result
+    up ...last    # -
+  end  0
+
+  0 num 1 &each for
+  last
+end  1
+assert
+  6
+from
+  def add 2 + end 1
+  [ 1 2 3 ] 0 &add reduce
+end
+
+
+## Map over a list ##
+def map  2          # list func
+  as func           #   func -> func
+  :num pull as num  #   num -> num
+  as l              #   l -> l
+
+  def each  1       # i
+    as i            #   i -> i
+    l i pull        # l elem-i
+    popnos          # elem-i
+    func apply      # l func(elem-i)
+    l i push        # l(updated)
+    up ...l         #   l -> l
+  end  0            # -
+
+  0 num 1 &each for l
+end  1
+assert
+  [ 0 2 3 4 ]
+from
+  def times2  1
+    2 *
+  end  1
+  [ 0 1 1.5 2 ] &times2 map
+end

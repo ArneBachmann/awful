@@ -1,0 +1,35 @@
+# Maths #
+
+include stack
+
+
+## Division ##
+def /  2
+  // popnos
+end  1
+assert
+  5/3
+from
+  5. 3. /
+end
+
+
+## Modulo ##
+def %  2
+  // pop
+end  1
+assert
+  2
+from
+  5 3 %
+end
+
+
+## Floor ##
+def floor  1
+  dup 1 % -  # remove decimal part
+end  1
+  assert 2 from 2.5 floor end
+  assert -3 from -2.5 floor end
+  assert 2 from 9 4 / floor end  # test fraction
+  assert 2 from 2.456434523409823467239 floor end  # test decimal

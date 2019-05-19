@@ -1,0 +1,55 @@
+# Data structures and types #
+
+include stack
+
+
+## Convert string into number ##
+def as-number  1
+  :type pull 2 eq if break    # nothing to do for numbers
+  :type pull 3 eq unless error "as-number requires a string"
+  2 swap :type pushi
+end  1
+  assert 34.56 from 34.56 as-number end
+  assert 34.56 from "34.56" as-number end
+  assert True :ERROR from True as-number end
+
+
+## Convert codepoint integer into string character ##
+def chr  1
+  "" 0 pushi          # put the ord from TOS into an empty string
+  1 swap :num pushi   # set the string length to one
+end  1
+  assert "7" from 55 chr end
+  assert "A" from 65 chr end
+
+
+## Convert string character into code point integer ##
+def ord  1
+  0 pull
+  popnos
+end  1
+  assert 51 from 3 ord end
+  assert 65 from :A ord end
+
+
+#def as-num  1
+#  2 swap :type pushi  # modify the type from
+#end  1
+
+
+## Tests ##
+assert
+  7 67 2 "5"
+from
+  1                 # create integer 1
+  2 swap :x push    # create sub-integer 1{x->2}
+  54 swap 0 pushi   # update internal integer representation 6{x->2}
+  55 swap 1 pushi   # ...
+  2 swap :num pushi # 67{x->2}
+  1 pull            # 67{x->2} 55 (=ord("3"))
+  chr               # 67{x->2} 3
+  swap              # 7 {67 x->2}  get internal representation data from index 1
+  "5" swap :y push  # 7 {67 x->2 y-> "5"}  create sub-string
+  as a              # 7  a->{67 x->2 y-> "5"}
+  a a.x a.y
+end

@@ -1,0 +1,210 @@
+# List operations #
+
+include loops
+
+
+## Create a list from n elements on the stack TODO ##
+def list  0
+  4 0 ""                          # :type :num ""
+  :num pushi                      # :type {num: 0}
+  :type pushi                     # {num: 0, type: LIST}
+end  1
+assert
+  [ ] 4 0                          # literal list notation
+from
+  list                            # []
+  :num pull                       # [] 0
+  swap                            # 0 []
+  :type pull                      # 0 [] 4
+  rot3                            # [] 4 0
+end
+
+
+## Helper function to copy elements between list structures ##
+def list-copy  5                  # source-list target-list from-index to-index count
+  as count
+  as to
+  as start
+  as target
+  as source
+  source.num                      # source-num
+  start count +                   # source-num start+count
+  1 -                             # source-num start+count-1
+  lt if break "list-copy source out of bounds"
+
+  def copy  1                     # i
+    dup start +                   # i i+start
+    source swap pull              # i source elem-n
+    popnos                        # i elem-n
+    swap                          # elem-n i
+    to +                          # elem-n i+to
+    target swap                   # elem-n i+to target
+    push                          # target-updated
+    up ...target                  # 3 parents: copy->for'->for
+  end  0
+
+  0 count 1 &copy for target      # copy loop (Python: for i in range(0, count, 1))
+end  1
+assert
+  [ 1 2 3 4 5 ]
+from
+   [ 4 5 ] [ 1 2 3 2 1 ] 0 3 2 list-copy    # copy [ 4 5 ] to the end of the second list
+end
+
+
+## Concatenate two lists ##
+def list-concat  2
+  :num pull as len
+  as :b
+  :num pull as offset
+  as :a
+
+  def copy  1       # loop function
+    dup             # i i    duplicate loop index
+    b swap          # i b i
+    pull            # i b b_i  get i-th element from b
+    popnos          # i b_i
+    swap .offset +  # b_i i+offset
+    a swap push     # a <+ b_i
+    up ...a
+  end  0
+
+  0 len 1 &copy for
+  a len offset + swap :num pushi  # update list length
+end  1
+assert
+  [ 10 11 12 13 14 15 ]
+from
+  [ 10 11 ] [ 12 13 14 15 ] list-concat
+end
+
+
+## Crop a list to the internally specified number of elements by copying ##
+def list-crop'  1             # l
+  as l                        #    l -> l
+  l :num pull as num          # l   num -> l.num
+  [ ] as n                    # l   n -> []
+  l swap 0 0 num list-copy    # leaves target on stack
+end  1
+assert
+  [ 1 2 ]
+from
+  2 [ 1 2 3 ] :num pushi
+  list-crop'
+end
+
+
+## Split a list into two lists at a given index ##
+def list-split-at  2  # list index
+  as index            # l   index -> index
+  :num pull dup       # l l:num l:num
+  as len              # l l:num   len -> l:num
+  index - as num      # l   num -> num-index (to-move-count)
+  as l                #     l -> l
+  [ ] as n            #     n -> []
+
+  def split 1           # i (0..num-1)
+    dup l swap index +  # i l index+i
+    pull                # i l elem
+    popnos              # i elem
+    n                   # i elem n
+    rot3                # elem n i
+    push                # n (with elem)
+    up ...n             #    n -> n
+  end  0
+
+  0 num 1 &split for
+  index l :num pushi      # update counter of original list
+  list-crop'              # remove all elements over index
+  num n :num pushi        # set counter of freshly created split list
+end  2
+assert
+  [ 1 2 ]
+  [ 3 4 ]
+from
+  [ 1 2 3 4 ] 2 list-split-at
+end
+
+
+## Split a list at given substrings ##
+#def list-split  2  # list index
+#end  2             # prefix suffix
+
+
+## Join substrings with a separator ##
+#def list-join         list-of-lists separator
+#  as sep
+#end
+
+
+## List insertion ##
+#def list-insert 3  # list insert index
+#  rot3 swap        # insert list index
+#  list-split       # insert prefix suffix
+#end
+
+
+## Determine the highest element from a list of numbers ##
+def list-minmax'  2   # list pair-func
+  as func             # takes last and next elements and returns new aggregate
+
+  def compute  2      # last elem
+    swap as last      # elem   last -> last
+    last              # elem last
+    is-nil            # elem last-is-nil
+    if break          # return elem -> use as first result
+    last swap         # elem last
+    .....func apply   # last(*)elem
+  end  1
+
+  nil &compute reduce
+end  1
+
+## Determine the highest element from a list of numbers ##
+def list-max  1   # list
+
+  def check  2    # last elem
+    2dup          # last elem last elem
+    ge            # last elem last>=elem
+    cond          # last/elem
+  end  1
+
+  &check list-minmax'
+end  1
+assert
+  4
+from
+  [ -2 0 1 4 2 -10 ] list-max
+end
+
+
+## Determine the lowest element from a list of numbers ##
+def list-min  1   # list
+
+  def check  2    # last elem
+    2dup          # last elem last elem
+    le            # last elem last<=elem
+    cond          # last/elem
+  end  1
+
+  &check list-minmax'
+end  1
+assert
+  -10
+from
+  [ -2 0 1 4 2 -10 ] list-min
+end
+
+
+## Determine the sum of all numbers in a list ##
+def list-sum  1   # list
+  def add  2
+    +
+  end  1
+  0 &add reduce
+end  1
+assert
+  15
+from
+  [ 1 2 3 4 5 ] list-sum
+end

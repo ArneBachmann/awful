@@ -1,0 +1,56 @@
+# String operations #
+
+include lists
+include loops
+
+
+## Convert a list (of codepoints) into a string (via pushi) ##
+def string-from-list  1   # l
+  as l                    #    l -> l
+
+  def convert  1
+    dup                   # i i
+    l swap pull           # i l elem
+    swapover              # elem l i
+    pushi                 # l (updated)
+    up ...l               #   l -> l
+  end  0
+
+  0 l.num 1               # l num
+  &convert for            # (loop)
+  3 l :type pushi         # convert type and leave string on stack
+end  1
+assert
+  "abc"
+from
+  [ 97 98 99 ] string-from-list
+end
+
+
+## Concatenate two strings ##
+def string-concat  2
+  list-concat
+  string-from-list
+end  1
+assert
+  "abcde"
+from
+  "ab" "cde" string-concat
+end
+
+
+## String splitting ##
+def string-split-at  2    # string index
+  list-split-at           # list1 list2
+  string-from-list        # list1 s2
+  swap                    # s2 list1
+  string-from-list        # s2 s1
+  swap                    # s1 s2
+end  2
+assert
+  "abc"
+  "de"
+from
+  "abcde" 3 string-split-at
+end
+assert "abcde" from "abcde" 2 string-split-at string-concat end

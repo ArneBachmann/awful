@@ -1,0 +1,212 @@
+  # Stack operations #
+
+include basics
+
+
+## Triple a value ##
+def trip  1
+  dup dup
+end  3
+assert
+  :x :x :x
+from
+  "x" trip
+end
+
+
+## Swap TOS with NOS ##
+def swap  2
+  1 nib
+end  2
+  assert 2 1 from 1 2 swap end
+  assert :x 2 1 from :x 1 2 swap end
+  assert 1 2 4 3 from 1 2 3 4 swap end
+
+
+## Remove n-th element from stack ##
+def drop 2
+  # remove element below TOS
+  dup is-zero if error "drop argument must be a positive integer"
+  nib pop
+end  0
+  assert 1 2 0 "ERROR" from 1 2 0 drop end  # no-op
+  assert "b" from :a :b 1 drop end          # remove NOS
+  assert "b" "c" from :a :b :c 2 drop end   # remove NOS
+
+
+## Pop NOS ##
+def popnos  2
+  1 drop
+end  1
+def popnos'  2
+  swap pop
+end  1
+  assert 1 2 popnos' from 1 2 popnos end
+
+def pop2  2
+  pop pop
+end  0
+  assert :a from :a :b :c pop2 end
+
+def pop3  3
+  pop pop pop
+end  0
+  assert from :a :b :c pop3 end
+
+
+## Duplicate NOS over TOS ##
+def over  2  # a b
+  swap       # b a
+  dup 2      # b a a 2
+  bin        # a b a
+end  3
+  assert 1 2 1 from 1 2 over end
+
+
+## Pop n-th element ##
+def popn  2     # [a b m] n
+  def popn'  1  # x n
+    # n-times pop
+    popnos      # n
+    1 -         # n-1
+    dup 0 ne    # n-1 T/F
+    if popn'    # loop
+  end  nil
+  popn' pop   # [a b m-n]
+end  nil
+  assert 1 from 1 2 3 2 popn end
+
+
+## N-element rotation: puts n-th element to TOS ##
+def rot  1      # 1 2 0         1 2 1
+  dup 1 le      # 1 2 0 True    1 2 1 True
+  if break pop  # 1 2 2 False   2 or higher doesn't break here
+                # 1 2 2
+  1 -           # 1 2 1
+  nib           # 2 1
+end  0
+  assert 1 2 3    from 1 2 3 0 rot end  # no-op
+  assert 1 2 3    from 1 2 3 1 rot end  # no-op
+  assert 1 2 swap from 1 2   2 rot end  # swap
+  assert 2 3 1    from 1 2 3 3 rot end  # rot-3
+
+
+## Reverse N-element rotation: insert TOS down n elements
+def tor  1       # 1 2 2
+  # reverse rot
+  dup 1 le       # 1 2 2
+  if break pop
+  1 -            # 1 2 1
+  bin            # 2 1
+end  0
+  assert :a :b from :a :b 0 tor end  # no-op
+  assert :a :b from :a :b 1 tor end  # no-op
+  assert :b :a from :a :b 2 tor end  # swap
+  assert :c :a :b from :a :b :c 3 tor end
+  assert 1 2 3 3 rot 3 rot from 1 2 3 3 tor end  # equivalence
+
+
+## 3-element rotation ##
+def rot3  3
+  2 nib
+end  3
+  assert 1 2 3  3 rot from 1 2 3 rot3 end
+
+
+## 3-element reverse rotation ##
+def 3tor  3
+  2 bin
+end  3
+  assert 1 2 3  3 tor from 1 2 3 3tor end
+
+
+## Rotate m elements n times
+def rotn  3         # a b z m n
+  over              # a b z m n m
+  2 +               # a b z m n m+1
+  bin               # n a b z m
+  dup               # n a b z m m
+  nib               # n b z m a
+  swap              # n b z a m
+  dup 1 +           # n b z a m m+1
+  nib               # b z a , n
+  1 -               # b z a m n-1
+  dup is-zero       # b z a m n-1 0/1
+  if break pop2     # stop after n iterations and clean stack
+  rotn              # loop TODO implement tail end recursion?
+end  1
+  assert :z :a :b from :a :b :z 3 2 rotn end
+  assert 3 1 2 from 1 2 3 3 2 rotn end
+
+
+## Swap NOS and NNOS ##
+def shuffle  3  # a b c
+  3tor          # c a b
+  swap          # c b a
+  rot3          # b a c
+end  3
+def shuffle'  3 rot3 swap end  3  # alternative implementation 1
+def shuffle''  3 as c swap  c end  3  # alternative implementation 2
+  assert :b :a :c from :a :b :c shuffle
+  assert 2 1 3 from 1 2 3 shuffle' end
+  assert 2 [ 1 2 ] 3 from [ 1 2 ] 2 3 shuffle'' end
+end
+
+
+## Swap with NNOS ##
+def swapover  3   # a b c
+  swap            # a c b
+  rot3            # c b a
+end  3
+
+
+# n-times duplicate
+def times  2
+  def times'  2   # a n          a a n
+    swap dup      # n a a        a n a a
+    rot3          # a a n        a a a n
+    1 -           # a a n-1      a a a n-1
+    dup is-zero   # a a n-1 0/1  a a a n-1 0/1
+    if break pop  # end condition
+    times'        # loop
+  end  nil
+  1 -             # prepare counter
+  times'
+end  nil
+  assert :a :a :a :a from :a 4 times end
+
+
+## Duplicate NOS and TOS ##
+def 2dup  2
+  over over
+end  4
+assert
+  2 3 2 3
+from
+  2 3 2dup
+end
+
+
+## Test function references on the stack ##
+assert
+  3
+from
+  def use_drop  2
+    1 .f apply  # need apply because variable f contains a function reference
+  end  1
+  &drop as f    # reference copy
+  2 3 use_drop
+end
+
+
+## Conditional evaluation ##
+def cond  3   # a b c
+  if break pop
+  popnos
+end 1         # a if c else b
+assert
+  :a :d
+from
+  :a :b True cond
+  :c :d False cond
+end

@@ -1,0 +1,97 @@
+# Basic definitions #
+
+include selftests
+
+
+alias unless  # must be defined as alias, not as function, due to the following if block
+  not if
+end
+
+
+## Binary math functions ##
+def ne  2
+  eq not
+end  1
+  assert False  from nil nil ne end
+  assert True   from nil 0   ne end
+  assert False  from 1   1   ne end
+  assert True   from 1   100 ne end
+
+alias gt le not end
+  assert 0    from 0 4 3 le if 1 end
+  assert 0 1  from 0 3 4 le if 1 end
+  assert 0 1  from 0 4 3 gt if 1 end
+  assert 0    from 0 3 4 gt if 1 end
+
+alias lt ge not end
+  assert 1    from   4 3 ge if 1 end
+  assert 0    from 0 3 4 ge if 1 end
+  assert 0    from 0 4 3 lt if 1 end
+  assert 1    from   3 4 lt if 1 end
+
+
+## Unary math functions ##
+
+### Nil checking ###
+def is-nil  1   # value
+  nil eq        # value-is-nil
+end  1
+assert True from nil is-nil end
+assert False from 0 is-nil end
+assert False from :a is-nil end
+assert False from 12/32 is-nil end
+
+
+### Determine if number is negative (lower than zero) ###
+def is-neg  1
+  0 lt
+end  1
+  assert True from -1 is-neg end
+  assert True from -99999999999 is-neg end
+  assert False from 0 is-neg end
+  assert False from 1 is-neg end
+  assert False from 99999999999 is-neg end
+
+
+## Exclusive bitwise or operation ##
+def nand  2
+  and negate
+end  1
+
+
+## Negated bitwise or operation ##
+def nor  2
+  or negate
+end  1
+
+### Determine if number is positive (larger than zero) ###
+def is-pos 1
+  0 gt
+end  1
+  assert False from -1            is-pos end
+  assert False from -99999999999  is-pos end
+  assert False from 0             is-pos end
+  assert True from 1              is-pos end
+  assert True from 99999999999    is-pos end
+
+
+### Determine if number is zero ###
+def is-zero  1
+  0 eq
+end  1
+  assert True  from 0  is-zero end
+  assert False from -1 is-zero end
+  assert False from 1  is-zero end
+
+
+### Invert signum or flip bits ###
+def negate  1           # number
+  -1 *                  # -number
+end  1
+assert
+  0 -1 1
+from
+  0 negate
+  1 negate
+  -1 negate
+end
