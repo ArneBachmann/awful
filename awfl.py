@@ -1,4 +1,4 @@
-''' AWFUL: Arne's Worst F*cked-Up Language. '''
+''' AWFUL: Arguably's Worst F*cked-Up Language. '''
 
 import copy, decimal, doctest, fractions, os, sys
 from functools import reduce
@@ -35,7 +35,6 @@ INDENT_N = 2
 INDENTER = SPACE * INDENT_N
 TYPE, NUM = 'type', 'num'
 TYPES = CODE, NILT, BOOL, NUMBER, STRING, LIST, FUNC = -1, 0, 1, 2, 3, 4, 5  # of internal presentation dict[TYPE]
-_NIL = {TYPE: NILT}  # singleton instance instead of makeNil
 
 
 class ParsingError(Exception): pass
@@ -221,51 +220,57 @@ def orderedDictRepresentation(simple_or_dikt):
 
 def internalAsString(e, indent = 0, prefix = ""):
   ''' Create printable representation of a data type.
+      Each recursion takes care of its own indentation.
 
       e: internal representation or codepoint
-      indent: determines amount of space added for each item
-      prefix: for nested variables, this is the full path
+      indent: indentation level
+      prefix: for nested variables, this is the full path. in this case, the indentation is skipped (right-hand side of ->)
   >>> print(internalAsString({'a': 1, 'b': {'c': 2, 'd': 3, 'e': {'f': -1, 'type': 1, '0': 0}, 'type': 7}, 'type': 0}))
   nil {
     a -> 1
     b -> {
       c -> 2
       d -> 3
-      e -> False {f -> -1 }
+      e -> False { f -> -1 }
       type -> 7
     }
   }
   >>> print(internalAsString({'type': 4, 'num': 1, '0': {'type': 2, 'num': 1, '0': 49}}))
   [ 1 ]
+  >>> print(internalAsString({'type': 4, 'num': 2, '0': {'type': 2, 'num': 1, '0': 49}, '1': {'type': 1, '0': 0}}))
+  [
+    1
+    False
+  ]
   >>> print(internalAsString({'type': 5, 'num': 1, '0': 97}))
   &a
   '''
-  i = INDENTER * indent; j = i + INDENTER  # first and second level indentation
+  i = INDENTER * indent; j = i + INDENTER; p = (i if not prefix else "")  # first and second level indentation
   assert isinstance(e, int) or (isinstance(e, dict) and TYPE in e), "wrong type %r" % e  # int and list = internal dict values
-  if isinstance(e, int): return i + str(e)
+  if isinstance(e, int): return p + str(e)  # pure integer codes
   tipe = e[TYPE]
-  if   tipe == NILT: value = (i if not prefix else "") + NIL
-  elif tipe == BOOL: value = (i if not prefix else "") + str(getBool(e))
-  elif tipe == FUNC: value = (i if not prefix else "") + REF + getString(e, allowed_types = (FUNC, ))
-  else: value = ""
-  try: keys = set(([TYPE] if TYPE in e and e[TYPE] in TYPES else []) + ([str(n) for n in range(e[NUM])] + [NUM] if NUM in e else (['0'] if tipe == BOOL else [])))  # expected keys
-  except TypeError as E: raise RuntimeViolation("did you use push instead of pushi? %r" % E)
-  keys = set(e.keys()) - keys  # unexpected keys
-  if tipe in (NUMBER, STRING):
+  if   tipe == NILT: value = p + NIL  # noqa: E271
+  elif tipe == BOOL: value = p + str(getBool(e))
+  elif tipe == FUNC: value = p + REF + getString(e, allowed_types = (FUNC, ))
+  elif tipe in (NUMBER, STRING):
     assert NUM in e
-    value += (i if not prefix else "") + (str(getNumber(e)) if tipe == NUMBER else ((QUOTE + getString(e) + QUOTE) if e[NUM] > 1 else SYMBOL + getString(e)))
-  elif tipe == LIST:  # list-like
-    value += i + "[ " + ("\n" + j if e[NUM] > 1 else "")
-    value += ("\n" + i).join([internalAsString(e[str(n)], indent + 2 if e[NUM] > 1 else 0) if str(n) in e else '<undef>' for n in range(e[NUM])])
-    value += ("\n" + i if e[NUM] > 1 else "") + " ]"
+    value = p + (str(getNumber(e)) if tipe == NUMBER else ((QUOTE + getString(e) + QUOTE) if e[NUM] > 1 else SYMBOL + getString(e)))
+  else: value = ""
+  try: keys = set(([TYPE] if TYPE in e and e[TYPE] in TYPES else []) + ([str(n) for n in range(e[NUM])] + ([NUM] if tipe in TYPES else []) if NUM in e else (['0'] if tipe == BOOL else [])))  # expected keys
+  except TypeError as E: raise RuntimeViolation("did you use push instead of pushi? %r" % E)
+  keys = set(e.keys()) - keys  # unexpected keys to display
+  if tipe == LIST:  # list-like
+    value += p + ("[\n" if e[NUM] > 1 else "[ ")
+    value += "\n".join([internalAsString(e[str(n)], indent + 1 if e[NUM] > 1 else 0) if str(n) in e else ((j if e[NUM] > 1 else "") + '<undef>') for n in range(e[NUM])])
+    value += ("\n" + i + "]") if e[NUM] > 1 else " ]"
   if keys:  # further sub-entries
-    value += (" " if value != "" else "") + "{" + ("\n" if len(keys) > 1 else "")  # opening brace
-    value += (j if len(keys) > 1 else "") + ("\n" + (j if len(keys) > 1 else "")).join("%s -> %s" % (key, internalAsString(e[key], indent + 1, prefix + DOT + key).strip(j)) for key in sorted(keys))
+    value += (" " if value != "" else "") + "{" + ("\n" if len(keys) > 1 else " ")  # opening brace
+    value += "\n".join("%s%s -> %s" % (j if len(keys) > 1 else "", key, internalAsString(e[key], indent + 1, prefix + DOT + key)) for key in sorted(keys))
     value += "\n%s}" % i if len(keys) > 1 else " }"  # closing brace
   return value
 
 def stackStr(stack):
-  return (("<\n%s" % INDENTER if len(stack) > 1 else "<") + ("\n%s" % INDENTER).join([internalAsString(_) for _ in stack]) + ("\n>" if len(stack) > 1 else ">")) if len(stack) > 0 else "<>"
+  return (("<\n" if len(stack) > 1 else "<") + "\n".join([internalAsString(_, 0 if len(stack) == 1 else 1) for _ in stack]) + ("\n>" if len(stack) > 1 else ">")) if len(stack) > 0 else "< >"
 
 def _namespaceStr(namespace):
   return ",\n".join(["%s%s -> %s" % (2 * INDENTER, k, REF + v.name if callable(v) else internalAsString(v, 1)) for k, v in sorted(namespace.items())])
@@ -319,7 +324,7 @@ def getVariable(inDict, key, remove = False):
     if debug: print("VARRM %s" % key)
     del inDict[prefix]
   else:
-    return inDict[prefix]
+    return copy.deepcopy(inDict[prefix]) if not isinstance(inDict[prefix], int) else makeNumber(inDict[prefix])
 
 
 
@@ -351,7 +356,7 @@ def evaluate(tokens, namespaces, stack):
   if debug:
     print("STACK " + stackStr(stack))
     if debug == "all": print(namespaceStr(namespaces))
-    if '--items' in sys.argv: print("TOKEN %s" % ({EOL: "EOL", TAIL_RECURSION: "TAILR"}.get(token, str(token))))
+    if '--items' in sys.argv: print("TOKEN %s" % ({EOL: "EOL", TAIL_RECURSION: "TAILR"}.get(token, repr(token))))
 
   if token[0] == COMMENT: return  # comments are part of the token stream unless in optimized mode
   if token == NIL: stack.append(fromLiteral(token)); return  # store nil singleton
@@ -517,11 +522,11 @@ def evaluate(tokens, namespaces, stack):
             break
         except AssertionError as E: error = "%s: %r" % (".".join(callstack), str(E))  # affects unit test or pre-/post-conditions
         finally: namespaces.pop(); callstack.pop()
-        if debug: print("ENDFN %r" % name)
+        if debug: print("ENDFN %r" % name); print("STACK " + stackStr(stack))
         if error: return error
         if outputs != NIL:
           difference = len(stack) - (before - inputs + int(outputs))
-          if difference != 0: raise RuntimeViolation("function %r stack size discrepancy %d" % (".".join(callstack), difference))
+          if difference != 0: raise RuntimeViolation("function %r stack size discrepancy %d" % (".".join(callstack + [name]), difference))
           return
       return inner  # applies function code body
     namespaces[-1][name] = func(block[2:], inputs, outputs)
@@ -531,7 +536,6 @@ def evaluate(tokens, namespaces, stack):
   if token == ASSERT:
     expect, test = next(tokens), next(tokens)  # consume next two blocks
     if optimize: return  # skip running tests
-    if debug == ASSERT: import pdb; pdb.set_trace()
     isstack, exstack = [], []  # always enable debug output during asserts
     try: error = interpret(TokenIter(test),   copy.deepcopy(namespaces), isstack)
     except RuntimeViolation as E: error = str(E)
@@ -549,7 +553,7 @@ def evaluate(tokens, namespaces, stack):
     except Exception as E:
       try: print(str(E) + "\nSTWAS " + stackStr(isstack) + " = %r" % isstack)
       except: print("ERROR %r" % test)
-      if debug: import pdb; pdb.set_trace()
+      if '--interactive' in sys.argv: import pdb; pdb.set_trace()
     return
 
   if token == DEBUG: name = next(tokens); debug = True if name == ON else (name if name != OFF else False); return
@@ -590,7 +594,7 @@ def evaluate(tokens, namespaces, stack):
 def tokenize(data):
   ''' Split the file data into textual fragments (tokens), accompanied with a line number it originates. '''
   lines = data.replace("\r\n", "\n").split("\n")  # line-wise
-  return reduce(lambda a, b: a + b, [[(l + 1, t) for t in line.strip().split(SPACE) if t != ''] + [(l + 1, EOL)] for l, line in enumerate(lines)], [])
+  return reduce(lambda a, b: a + b, [[(l + 1, t) for t in line.strip().split(SPACE) if t != '' and not t.startswith('```')] + [(l + 1, EOL)] for l, line in enumerate(lines)], [])
 
 
 def fromLiteral(token):
@@ -601,7 +605,7 @@ def fromLiteral(token):
   [('0', [('0', 49), ('num', 1), ('type', 2)]), ('1', [('0', -1), ('type', 1)]), ('num', 2), ('type', 4)]
   '''
   if isinstance(token, list): return makeList([fromLiteral(_) for _ in token if _ != NEWLIST])  # ignore [ since following list always treated right
-  if token == NIL: return _NIL
+  if token == NIL: return {TYPE: NILT}  # create a new object on every call to allow subsequent modification (e.g. in map-create)
   if token in TRUTH: return makeBool(token == TRUE)
   if token[0] == QUOTE: return makeString(token[1:-1])
   if token[0] == SYMBOL: return makeString(token[1:])
@@ -705,12 +709,12 @@ if __name__ == '__main__':
     debug <token>  start debugger at each <token>\n"""); sys.exit(0)
   debug = False; error, count = doctest.testmod()  # must define debug here to have it in test cases
   if error != 0: raise Exception("%d out of %d self-tests failed" % (error, count))
-  callstack, includes, stack, namespaces, aliases, debug, optimize, items = [], set(), [], [{}], {}, False, '--optimize' in sys.argv, []  # stack and global namespace
+  callstack, includes, stack, namespaces, aliases, debug, optimize, items = [], set(), [], [{}], {}, "system" if '--debug' in sys.argv else False, '--optimize' in sys.argv, []  # stack and global namespace
   size = lambda l: sum([1 if not isinstance(_, list) else size(_) for _ in l]); assert 5 == size([1, 2, 3, [3, 4]])
   for file in [_ for _ in sys.argv[1:] if _.endswith(".awfl")]:
     tokens = include(file.rstrip(".awfl"), file, 0)
     _ = parse(file, tokens); items.extend(_[0])
-  if '--debug' in sys.argv: print("Parsed %d items from %r" % (size(items), file))
+  if debug: print("Parsed %d items from %r" % (size(items), file))
   error = interpret(TokenIter(items), namespaces, stack)
   if '--repl' in sys.argv:
     count = 0

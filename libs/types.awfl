@@ -32,11 +32,6 @@ end  1
   assert 65 from :A ord end
 
 
-#def as-num  1
-#  2 swap :type pushi  # modify the type from
-#end  1
-
-
 ## Tests ##
 assert
   7 67 2 "5"

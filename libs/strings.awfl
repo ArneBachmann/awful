@@ -1,7 +1,6 @@
 # String operations #
 
 include lists
-include loops
 
 
 ## Convert a list (of codepoints) into a string (via pushi) ##

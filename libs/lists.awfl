@@ -4,15 +4,17 @@ include loops
 
 
 ## Create a list from n elements on the stack TODO ##
-def list  0
+```
+def list-create  0
   4 0 ""                          # :type :num ""
   :num pushi                      # :type {num: 0}
   :type pushi                     # {num: 0, type: LIST}
 end  1
+```
 assert
   [ ] 4 0                          # literal list notation
 from
-  list                            # []
+  list-create                     # []
   :num pull                       # [] 0
   swap                            # 0 []
   :type pull                      # 0 [] 4
@@ -21,6 +23,7 @@ end
 
 
 ## Helper function to copy elements between list structures ##
+```
 def list-copy  5                  # source-list target-list from-index to-index count
   as count
   as to
@@ -43,8 +46,14 @@ def list-copy  5                  # source-list target-list from-index to-index 
     up ...target                  # 3 parents: copy->for'->for
   end  0
 
-  0 count 1 &copy for target      # copy loop (Python: for i in range(0, count, 1))
+  0 count 1 &copy for             # copy loop (Python: for i in range(0, count, 1))
+  target :num pull                # target num
+  to count + lt if (              # if num is too low
+    to count + swap :num pushi    # increase size WARN could leave out elements before "to"
+  )
+
 end  1
+```
 assert
   [ 1 2 3 4 5 ]
 from
@@ -53,6 +62,7 @@ end
 
 
 ## Concatenate two lists ##
+```
 def list-concat  2
   :num pull as len
   as :b
@@ -72,6 +82,7 @@ def list-concat  2
   0 len 1 &copy for
   a len offset + swap :num pushi  # update list length
 end  1
+```
 assert
   [ 10 11 12 13 14 15 ]
 from
@@ -80,12 +91,12 @@ end
 
 
 ## Crop a list to the internally specified number of elements by copying ##
+```
 def list-crop'  1             # l
-  as l                        #    l -> l
-  l :num pull as num          # l   num -> l.num
-  [ ] as n                    # l   n -> []
-  l swap 0 0 num list-copy    # leaves target on stack
+  as l                        #     l -> l
+  l [ ] 0 0 l.num list-copy   # l (cropped)
 end  1
+```
 assert
   [ 1 2 ]
 from
@@ -95,6 +106,7 @@ end
 
 
 ## Split a list into two lists at a given index ##
+```
 def list-split-at  2  # list index
   as index            # l   index -> index
   :num pull dup       # l l:num l:num
@@ -118,6 +130,7 @@ def list-split-at  2  # list index
   list-crop'              # remove all elements over index
   num n :num pushi        # set counter of freshly created split list
 end  2
+```
 assert
   [ 1 2 ]
   [ 3 4 ]
@@ -145,6 +158,7 @@ end
 
 
 ## Determine the highest element from a list of numbers ##
+```
 def list-minmax'  2   # list pair-func
   as func             # takes last and next elements and returns new aggregate
 
@@ -159,8 +173,10 @@ def list-minmax'  2   # list pair-func
 
   nil &compute reduce
 end  1
+```
 
 ## Determine the highest element from a list of numbers ##
+```
 def list-max  1   # list
 
   def check  2    # last elem
@@ -171,6 +187,7 @@ def list-max  1   # list
 
   &check list-minmax'
 end  1
+```
 assert
   4
 from
@@ -179,6 +196,7 @@ end
 
 
 ## Determine the lowest element from a list of numbers ##
+```
 def list-min  1   # list
 
   def check  2    # last elem
@@ -189,6 +207,7 @@ def list-min  1   # list
 
   &check list-minmax'
 end  1
+```
 assert
   -10
 from
@@ -197,14 +216,90 @@ end
 
 
 ## Determine the sum of all numbers in a list ##
+```
 def list-sum  1   # list
   def add  2
     +
   end  1
   0 &add reduce
 end  1
+```
 assert
   15
 from
   [ 1 2 3 4 5 ] list-sum
+end
+
+
+## Find first occurrence of an element in the list ##
+```
+def list-find  2        # list value
+  as value              # what to search, and index found
+  as list
+  False as found
+  list.num as num
+
+  def check  1                # i
+    as i                      #    i -> i, also pops the value
+    found if break            # already found, nothing to do
+    list i pull               # list elem-i
+    popnos                    # elem-i
+    ...value eq if break i up ...value True up ...found
+  end  0
+
+  0 num 1 &check for
+  found dup if break value
+  nil
+end  2  # :ok|nil nil|index
+```
+assert
+  False nil
+from
+  [ ] nil list-find
+end
+assert
+  True 4
+from
+  [ 1 2 3 4 nil 5 ] nil list-find
+end
+assert
+  True 2
+from
+  [ 1 2 3 4 nil 5 ] 3 list-find
+end
+
+
+## Append one element to a list ##
+```
+def list-append  2          # list value
+  as value
+  as list
+  list.num as num
+  value list num push       # store new value
+  num 1 + swap :num pushi   # increase length
+end  1                      # list
+```
+assert
+  [ 1 2 False 3 ]
+from
+  [ 1 2 False ] 3 list-append
+end
+
+
+## Remove one element ##
+```
+def list-swap-last  2   # set index
+  as index              # set   index -> index
+  :num pull 1 -         # set num-1
+  as last               # set   last -> num-1
+  last pull             # set last
+  swap index push       # set (updated)
+  last swap :num pushi  # set (updated)
+  list-crop'            # remove unused entry
+end  1                  # set
+```
+assert
+  [ 3 2 ]
+from
+  [ 1 2 3 ] 0 list-swap-last
 end

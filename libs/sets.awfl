@@ -1,1 +1,96 @@
 # Set operations #
+
+include maps
+
+
+## Create an empty map ##
+```
+def set-create  0
+  map-create
+  7 swap :type pushi
+end 1
+```
+
+## Add one element ##
+```
+def set-add  2        # set element
+  nil map-set         # set (element)
+end  1
+```
+assert
+  [ 1 :x ]
+from
+  set-create
+  1 set-add
+  :x set-add
+  :keys pull
+  popnos
+end
+
+
+## Union ##
+```
+def set-union  2      # set1 set2
+  as scd              # set1   scd -> set2
+  as set              #   set -> set1
+
+  def add  1            # i
+    scd.keys swap pull  # keys elem-i
+    popnos              # elem-i
+    set swap            # set elemi add elem
+    set-add             # add element of second into into first set
+    up ...set
+  end  0
+
+  0 scd.keys.num 1 &add for
+  set
+end  1
+```
+assert
+  [ 1 2 3 ]
+  [ nil nil nil ]
+from
+  set-create  # ()
+  1 set-add
+  2 set-add   # (1 2)
+  set-create  # (1 2) ()
+  3 set-add
+  2 set-add   # (1 2) (3 2)
+  set-union   # (1 2 3)
+  :keys pull  # (1 2 3) [1 2 3]
+  swap
+  :values pull
+  popnos
+end
+
+## Intersection ##
+```
+def set-intersect  2      # set1 set2
+  as scd                  # set   scd -> set2
+  as set                  #    set -> set1
+  set-create as new       #    new -> result
+
+  def check  1
+    set.keys swap pull    # set-keys elem-i
+    popnos                # elem-i
+    dup scd.keys rot3     # elem-i scd.keys elem-i
+    list-find             # elem-i True|False index|nil
+    as index              # elem-i True|False    index -> index|nil
+    unless break pop      # if not contained: nothing to do
+    new swap set-add      # new (added)
+    up ...new             #    new -> (updated)
+  end  0
+
+  0 set.keys.num 1 &check for
+  new
+end  1
+```
+assert
+  [ 2 ]
+from
+  set-create 1 set-add 2 set-add
+  set-create 2 set-add 3 set-add
+  set-intersect
+  debug off
+  :keys pull popnos
+end

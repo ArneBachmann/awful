@@ -1,0 +1,97 @@
+# Map implementation #
+
+include lists
+
+
+```
+alias map-keys' :keys end
+alias map-values' :values end
+```
+
+
+## Create an empty map ##
+```
+def map-create  0
+  6 nil :type pushi
+  [ ] swap map-keys' push
+  [ ] swap map-values' push
+end 1
+```
+assert
+  [ ]
+  [ ]
+from
+  map-create map-keys' pull swap map-values' pull popnos
+end
+
+
+## Add one key-value pair ##
+```
+def map-set  3              # map k v
+  as value                  # map k   value -> v
+  as key                    # map   key -> k
+  as map                    #   map -> map
+  map.keys.num as num       #   num -> map.keys:num
+  map.keys key list-find    # index|nil
+  as index                  #   index -> index
+  unless break (            # (not found)
+    map.keys key list-append up map.keys
+    map.values value list-append up map.values
+    map
+  )  # store new and break
+  key map.keys index push up map.keys
+  value map.values index push up map.values
+  map
+end  1
+```
+assert
+  [ :x :y ]
+  [ :y 13 ]
+from
+  map-create
+  :x :y map-set
+  :y 13 map-set
+  :keys pull
+  swap
+  :values pull
+  popnos
+end
+
+
+## Check containment ##
+```
+def map-contains  2     # map value
+  list-find             # bool index|nil
+  pop
+end  1  # boolean
+```
+assert
+  True False
+from
+  [ 1 2 3 ] 2 map-contains
+  [ ] 2 map-contains
+end
+
+
+## Get value from map ##
+```
+def map-get  2          # map key
+  as key
+  as map
+  map.keys key list-find
+  as index
+  unless error "Element not in map"
+  map.values index pull
+  popnos
+end  1                  # value
+```
+assert
+  :y nil
+from
+  map-create
+  :x :y map-set
+  3 nil map-set
+  as mymap
+  mymap :x map-get
+  mymap 3 map-get
+end
