@@ -169,7 +169,7 @@ AWFUL's features include:
             - selftests
 - stack
   - basics
-    -selftests
+    - selftests
 - strings
   - lists
     - loops
@@ -205,7 +205,18 @@ AWFUL's features include:
 - add multi threading?
 
 
-## Defined types in the standard library ##
+## Defined types ##
+
+### Interpreter internals ###
+- -1: codepoint
+- 0: `nil`
+- 1: bool
+- 2: number
+- 3: string
+- 4: list
+- 5: function (reference)
+
+### Standard library ###
 - 6: maps
 - 7: sets
 
