@@ -1,9 +1,10 @@
 # Set operations #
+### set-create, set-add, set-remove, set-union, set-intersect, set-difference
 
 include maps
 
 
-## Create an empty map ##
+## Create an empty set ##
 ```
 def set-create  0
   map-create
@@ -25,6 +26,28 @@ from
   :x set-add
   :keys pull
   popnos
+end
+
+
+## Remove one element ##
+```
+def set-remove  2     # set element
+  as key
+  as set
+  set.keys key list-find
+  as index
+  unless break        # not found -> do nothing TODO or return error code or raise exception? returning the set seems better
+  set.keys index list-swap-last
+  up set.keys         # update
+  set
+end  1                # set (updated)
+```
+assert
+  [ 1 3 ]
+from
+  set-create 1 set-add 2 set-add 3 set-add
+  2 set-remove
+  :keys pull popnos
 end
 
 
@@ -91,6 +114,35 @@ from
   set-create 1 set-add 2 set-add
   set-create 2 set-add 3 set-add
   set-intersect
-  debug off
+  :keys pull popnos
+end
+
+
+## Difference ##
+```
+def set-difference  2   # set1 set2
+  as scd
+  as set
+
+  def check  1                # i
+    scd.keys swap pull popnos # elem-i
+    set.keys swap list-find   # T|F index|nil
+    as index                  #    index -> index|nil
+    unless break              # skip this element if not in set1
+    set.keys index list-swap-last   # remove found element at position index from set1
+    up ...set.keys            # update set structure
+    debug off
+  end  0
+
+  0 scd.keys.num 1 &check for
+  set
+end  1
+```
+assert
+  [ 1 ]
+from
+  set-create 1 set-add 2 set-add
+  set-create 2 set-add 3 set-add
+  set-difference
   :keys pull popnos
 end

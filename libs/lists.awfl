@@ -1,4 +1,5 @@
 # List operations #
+### list-create, list-copy, list-concat, list-split-at, list-max, list-min, list-sum, list-find, list-append
 
 include loops
 
@@ -288,15 +289,15 @@ end
 
 ## Remove one element ##
 ```
-def list-swap-last  2   # set index
-  as index              # set   index -> index
-  :num pull 1 -         # set num-1
-  as last               # set   last -> num-1
-  last pull             # set last
-  swap index push       # set (updated)
-  last swap :num pushi  # set (updated)
+def list-swap-last  2   # list index
+  as index              # list   index -> index
+  :num pull 1 -         # list num-1
+  as last               # list   last -> num-1
+  last pull             # list last
+  swap index push       # list (updated)
+  last swap :num pushi  # list (updated)
   list-crop'            # remove unused entry
-end  1                  # set
+end  1                  # list
 ```
 assert
   [ 3 2 ]

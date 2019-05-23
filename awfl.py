@@ -11,7 +11,7 @@ NIL = 'nil'
 SYMBOLS = COMMENT, SYMBOL, QUOTE, DOT, REF = '#', ':', '"', '.', '&'
 ESCAPE, SPACE = '\\"', ' '
 NUMERICS = PLUS, MINUS, TIMES, DIVMOD = '+', '-', '*', '//'
-BITWISE = AND, OR, XOR = 'and', 'or', 'xor'
+BITWISE = BAND, BOR, BXOR = 'band', 'bor', 'bxor'
 GROUPING = GROUP, ENDGROUP = '(', ')'
 LISTS = NEWLIST, ENDLIST = '[', ']'
 TRUTH = TRUE, FALSE = 'True', 'False'
@@ -480,9 +480,9 @@ def evaluate(tokens, namespaces, stack):
         if   isinstance(a, fractions.Fraction) and isinstance(b, int): b = fractions.Fraction(b)
         elif isinstance(b, fractions.Fraction) and isinstance(a, int): a = fractions.Fraction(a)
       if token in BITWISE and not (isinstance(a, int) and isinstance(b, int)): raise RuntimeViolation("bit operation %s requires integers %r %r" % (token, a, b))
-      if token == AND: c = a & b
-      elif token == OR: c = a | b
-      elif token == XOR: c = a ^ b
+      if token == BAND: c = a & b
+      elif token == BOR: c = a | b
+      elif token == BXOR: c = a ^ b
       elif token == PLUS:   c = a + b
       elif token == MINUS:  c = a - b
       elif token == TIMES:  c = a * b

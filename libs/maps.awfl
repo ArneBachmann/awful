@@ -1,4 +1,5 @@
-# Map implementation #
+# Associative mappings #
+### map-create, map-set, map-get, map-contains
 
 include lists
 
@@ -63,7 +64,7 @@ end
 def map-contains  2     # map value
   list-find             # bool index|nil
   pop
-end  1  # boolean
+end  1                  # True|False
 ```
 assert
   True False

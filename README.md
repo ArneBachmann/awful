@@ -205,6 +205,11 @@ AWFUL's features include:
 - add multi threading?
 
 
+## Defined types in the standard library ##
+- 6: maps
+- 7: sets
+
+
 ## Performance ##
 The interpreter's performance is - as expected - not just horrible, but really awful.
 For the Fibonacci code, a slowdown factor of roughly 1000 compared to Python is observed.

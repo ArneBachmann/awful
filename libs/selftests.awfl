@@ -12,6 +12,12 @@ assert 2  1      from 1 2 1 nib end
 assert 1 :x 2 3  from 1 2 3 :x 2 bin end  # push :x two positions to down the stack
 
 
+## Test binary functions ##
+assert 8 from 123 12 band end
+assert 127 from 123 12 bor end
+assert 119 from 123 12 bxor end
+
+
 ## Test maths functions ##
 assert 1  1.5    from 3 2 // end
 assert 34.567    from 34.3 0.267 + end

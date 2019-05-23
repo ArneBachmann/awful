@@ -1,10 +1,50 @@
 # Basic definitions #
+### unless, and, or, negate, ne, gt, lt, nand, nor, is-nil, is-neg, is-pos, is-zero
 
 include selftests
 
 
+```
 alias unless  # must be defined as alias, not as function, due to the following if block
   not if
+end
+```
+
+```
+def and  2            # bool bool
+  if break            # T ? -> ?, F ? -> False
+  pop False           # False
+end  1
+```
+assert False from False False and end
+assert False from False True  and end
+assert False from True  False and end
+assert True  from True  True  and end
+
+
+```
+alias or              # bool bool
+  if break pop True   # T ? -> True, ? _ -> ?
+end                   # True|False
+```
+assert False from False False or end
+assert True  from False True  or end
+assert True  from True  False or end
+assert True  from True  True  or end
+
+
+### Invert signum or flip bits ###
+```
+def negate  1           # number
+  -1 *                  # -number
+end  1
+```
+assert
+  0 -1 1
+from
+  0 negate
+  1 negate
+  -1 negate
 end
 
 
@@ -30,22 +70,52 @@ alias lt ge not end
   assert 1    from   3 4 lt if 1 end
 
 
+### Exclusive bitwise or operation ###
+```
+def nand  2
+  band negate
+end  1
+```
+assert
+  -2
+from
+  34 3 nand
+end
+
+
+### Negated bitwise or operation ###
+```
+def nor  2
+  bor negate
+end  1
+```
+assert
+  -63
+from
+  23 41 nor
+end
+
+
 ## Unary math functions ##
 
 ### Nil checking ###
+```
 def is-nil  1   # value
   nil eq        # value-is-nil
 end  1
-assert True from nil is-nil end
-assert False from 0 is-nil end
-assert False from :a is-nil end
-assert False from 12/32 is-nil end
+```
+  assert True from nil is-nil end
+  assert False from 0 is-nil end
+  assert False from :a is-nil end
+  assert False from 12/32 is-nil end
 
 
 ### Determine if number is negative (lower than zero) ###
+```
 def is-neg  1
   0 lt
 end  1
+```
   assert True from -1 is-neg end
   assert True from -99999999999 is-neg end
   assert False from 0 is-neg end
@@ -53,21 +123,12 @@ end  1
   assert False from 99999999999 is-neg end
 
 
-## Exclusive bitwise or operation ##
-def nand  2
-  and negate
-end  1
-
-
-## Negated bitwise or operation ##
-def nor  2
-  or negate
-end  1
-
 ### Determine if number is positive (larger than zero) ###
+```
 def is-pos 1
   0 gt
 end  1
+```
   assert False from -1            is-pos end
   assert False from -99999999999  is-pos end
   assert False from 0             is-pos end
@@ -76,22 +137,11 @@ end  1
 
 
 ### Determine if number is zero ###
+```
 def is-zero  1
   0 eq
 end  1
+```
   assert True  from 0  is-zero end
   assert False from -1 is-zero end
   assert False from 1  is-zero end
-
-
-### Invert signum or flip bits ###
-def negate  1           # number
-  -1 *                  # -number
-end  1
-assert
-  0 -1 1
-from
-  0 negate
-  1 negate
-  -1 negate
-end

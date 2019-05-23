@@ -1,9 +1,11 @@
 # Control structures #
+#   for, reduce, map
 
 include stack
 
 
 ## Numbered "for"-like loop function ##
+```
 def for  3                     # first last+1 step function
   4 tor                        # F f l s
   rot3                         # F l s f
@@ -43,7 +45,7 @@ def for  3                     # first last+1 step function
   end  nil
   for'                         # start the loop
 end nil                        # loop could modify the stack
-
+```
 assert
   256 256
 from
@@ -65,6 +67,7 @@ end
 
 
 ## Reduce over a list ##
+```
 def reduce  3         # list initial func(2->1)
   as func
   as last
@@ -89,9 +92,11 @@ from
   def add 2 + end 1
   [ 1 2 3 ] 0 &add reduce
 end
+```
 
 
 ## Map over a list ##
+```
 def map  2          # list func
   as func           #   func -> func
   :num pull as num  #   num -> num
@@ -108,6 +113,7 @@ def map  2          # list func
 
   0 num 1 &each for l
 end  1
+```
 assert
   [ 0 2 3 4 ]
 from
