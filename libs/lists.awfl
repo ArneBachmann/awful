@@ -272,13 +272,12 @@ end
 
 ## Append one element to a list ##
 ```
-def list-append  2          # list value
+def list-append  2              # list value
   as value
   as list
-  list.num as num
-  value list num push       # store new value
-  num 1 + swap :num pushi   # increase length
-end  1                      # list
+  value list list.num push      # store new value
+  list.num 1 + swap :num pushi  # increase length
+end  1                          # list
 ```
 assert
   [ 1 2 False 3 ]

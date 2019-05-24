@@ -1,21 +1,32 @@
 # Set operations #
 ### set-create, set-add, set-remove, set-union, set-intersect, set-difference
 
-include maps
+include lists
 
 
 ## Create an empty set ##
 ```
 def set-create  0
-  map-create
-  7 swap :type pushi
-end 1
+  7 [ ] :type pushi
+end  1
 ```
+
+
+## Convert to list ##
+def set-as-list  1
+  4 swap :type pushi  # convert internal type
+end  1  # tested below
+
 
 ## Add one element ##
 ```
-def set-add  2        # set element
-  nil map-set         # set (element)
+def set-add  2          # set element
+  as value
+  as set
+  set value list-find   # T|F index|nil
+  as index
+  if break set          # found: nothing to do
+  set value list-append # add to set-"list"
 end  1
 ```
 assert
@@ -24,22 +35,32 @@ from
   set-create
   1 set-add
   :x set-add
-  :keys pull
-  popnos
+  set-as-list
+end
+
+
+## Check existence of an value ##
+def set-contains  2   # set value
+  list-find pop
+end  1
+assert
+  False True
+from
+  set-create 1 set-add 2 set-add as set
+  set 0 set-contains
+  set 2 set-contains
 end
 
 
 ## Remove one element ##
 ```
 def set-remove  2     # set element
-  as key
+  as value
   as set
-  set.keys key list-find
+  set value list-find
   as index
   unless break        # not found -> do nothing TODO or return error code or raise exception? returning the set seems better
-  set.keys index list-swap-last
-  up set.keys         # update
-  set
+  set index list-swap-last
 end  1                # set (updated)
 ```
 assert
@@ -47,7 +68,7 @@ assert
 from
   set-create 1 set-add 2 set-add 3 set-add
   2 set-remove
-  :keys pull popnos
+  set-as-list
 end
 
 
@@ -58,20 +79,19 @@ def set-union  2      # set1 set2
   as set              #   set -> set1
 
   def add  1            # i
-    scd.keys swap pull  # keys elem-i
-    popnos              # elem-i
-    set swap            # set elemi add elem
-    set-add             # add element of second into into first set
+    scd swap pull   # keys elem-i
+    popnos          # elem-i
+    set swap        # set elemi add elem
+    set-add         # add element of second into into first set
     up ...set
   end  0
 
-  0 scd.keys.num 1 &add for
+  0 scd.num 1 &add for
   set
 end  1
 ```
 assert
   [ 1 2 3 ]
-  [ nil nil nil ]
 from
   set-create  # ()
   1 set-add
@@ -80,10 +100,7 @@ from
   3 set-add
   2 set-add   # (1 2) (3 2)
   set-union   # (1 2 3)
-  :keys pull  # (1 2 3) [1 2 3]
-  swap
-  :values pull
-  popnos
+  set-as-list
 end
 
 ## Intersection ##
@@ -94,17 +111,17 @@ def set-intersect  2      # set1 set2
   set-create as new       #    new -> result
 
   def check  1
-    set.keys swap pull    # set-keys elem-i
-    popnos                # elem-i
-    dup scd.keys rot3     # elem-i scd.keys elem-i
-    list-find             # elem-i True|False index|nil
-    as index              # elem-i True|False    index -> index|nil
-    unless break pop      # if not contained: nothing to do
-    new swap set-add      # new (added)
-    up ...new             #    new -> (updated)
+    set swap pull     # set-keys elem-i
+    popnos            # elem-i
+    dup scd rot3      # elem-i scd.keys elem-i
+    list-find         # elem-i True|False index|nil
+    as index          # elem-i True|False    index -> index|nil
+    unless break pop  # if not contained: nothing to do
+    new swap set-add  # new (added)
+    up ...new         #    new -> (updated)
   end  0
 
-  0 set.keys.num 1 &check for
+  0 set.num 1 &check for
   new
 end  1
 ```
@@ -114,7 +131,7 @@ from
   set-create 1 set-add 2 set-add
   set-create 2 set-add 3 set-add
   set-intersect
-  :keys pull popnos
+  set-as-list
 end
 
 
@@ -125,16 +142,15 @@ def set-difference  2   # set1 set2
   as set
 
   def check  1                # i
-    scd.keys swap pull popnos # elem-i
-    set.keys swap list-find   # T|F index|nil
+    scd swap pull popnos      # elem-i
+    set swap list-find        # T|F index|nil
     as index                  #    index -> index|nil
     unless break              # skip this element if not in set1
-    set.keys index list-swap-last   # remove found element at position index from set1
-    up ...set.keys            # update set structure
-    debug off
+    set index list-swap-last  # remove found element at position index from set1
+    up ...set                 # update set structure
   end  0
 
-  0 scd.keys.num 1 &check for
+  0 scd.num 1 &check for
   set
 end  1
 ```
@@ -144,5 +160,5 @@ from
   set-create 1 set-add 2 set-add
   set-create 2 set-add 3 set-add
   set-difference
-  :keys pull popnos
+  set-as-list
 end

@@ -71,7 +71,7 @@ AWFUL's features include:
 ## Implementation details ##
 - token parsing errors (syntax, grammar) and runtime violations (function stack invariants and type checks) are issued by two separate exceptions
 - the internal data representation for all AWFUL data types are always dictionaries with keys as static Python strings (symbols from the token stream, or stringified integers), and values as integers
-- lists are implemented as maps with the key being the list index 0..n-1
+- lists are implemented as Python `dict`s with the key being the list index 0..n-1
 - strings are implemented as lists of charset codepoints
 - numbers are implemented as serialized strings from Python data types `int` \< `fraction` \< `decimal`
 - Boolean values with the symbols `True` and `False` are implemented having a value of -1 and 0, respecitvely
@@ -161,12 +161,11 @@ AWFUL's features include:
       - selftests
 - selftests
 - sets
-  - maps
-    - lists
-      - loops
-        - stack
-          - basics
-            - selftests
+  - lists
+    - loops
+      - stack
+        - basics
+          - selftests
 - stack
   - basics
     - selftests
