@@ -92,27 +92,27 @@ AWFUL's features include:
   - `dup`: duplicates (deep-copies) TOS
   - `pop`: removes TOS
   - *`n`* `nib`: remove n-th topmost element and push it onto TOS (0 = keep TOS, 1 = swap with TOS, 2 = rotate 3 elements)
-  - `*n* bin`: remove TOS and insert it down n positions (0 = keep at TOS, 1 = swap with NOS, 2 = reverse rotate 3 elements)
+  - *`n`* `bin`: remove TOS and insert it down n positions (0 = keep at TOS, 1 = swap with NOS, 2 = reverse rotate 3 elements)
 
 
 ## Variables ##
 - variable names are stored as words in the current namespace and may optionally contain nested sub-entries via dot notation
-- variable definition: `*value* as name[.sub1[.sub2[...]]]>`  stores value under `name` in current namespace
-- variable update: `*value* up name`  updates value of `name` in current namespace
+- variable definition: *`value`* `as name[.sub1[.sub2[...]]]>`  stores value under `name` in current namespace
+- variable update: *`value`* `up name`  updates value of `name` in current namespace
 - variable destruction: `rm name`
 
 
 ## Data structures ##
 - to manipulate data in more complex data types, the following operations must be used:
-  - `*data :symbol* pull`  extracts the substructure `symbol` (or an integer index) from the datum and pushes on top of the stack
-  - `*data substructure :symbol* push`  adds or updates the substructure in the datum, consuming it from the stack
-  - `*data substructure :symbol* pushi`  adds or updates a direct integer value under the symbol key, consuming it from the stack (this is used to manipulate code points or internal metadata like `:type` and `:num` directly)
+  - *`data :symbol`* `pull`  extracts the substructure `symbol` (or an integer index) from the datum and pushes on top of the stack
+  - *`data substructure :symbol`* `push`  adds or updates the substructure in the datum, consuming it from the stack
+  - *`data substructure :symbol`* `pushi`  adds or updates a direct integer value under the symbol key, consuming it from the stack (this is used to manipulate code points or internal metadata like `:type` and `:num` directly)
 
 
 ## Functions ##
-- function invocation: `*arguments* name`  calls a function that consumes zero or more input arguments from the stack and puts zero or more output values onto the stack
+- function invocation: *`arguments`* `name`  calls a function that consumes zero or more input arguments from the stack and puts zero or more output values onto the stack
 - function reference creation: `&name`  puts a reference to the function on the stack
-- function reference invocation: `*arguments reference* apply`  calls a function from a function reference in TOS
+- function reference invocation: *`arguments reference`* `apply`  calls a function from a function reference in TOS
 - function definition: `def name n-input-args body end m-output-args`
 
   - `inputs` and `outputs` are integers that define the expected number of elements on the stack before and after the function call
