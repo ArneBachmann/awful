@@ -91,7 +91,7 @@ AWFUL's features include:
 - basic stack operations supported in AWFUL:
   - `dup`: duplicates (deep-copies) TOS
   - `pop`: removes TOS
-  - `*n* nib`: remove n-th topmost element and push it onto TOS (0 = keep TOS, 1 = swap with TOS, 2 = rotate 3 elements)
+  - *`n`* `nib`: remove n-th topmost element and push it onto TOS (0 = keep TOS, 1 = swap with TOS, 2 = rotate 3 elements)
   - `*n* bin`: remove TOS and insert it down n positions (0 = keep at TOS, 1 = swap with NOS, 2 = reverse rotate 3 elements)
 
 
