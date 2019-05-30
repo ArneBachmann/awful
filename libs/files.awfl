@@ -1,0 +1,21 @@
+# File operations #
+
+
+include streams
+include strings
+
+
+## Tests ##
+assert
+  :abc
+from
+  "abc.tmp" create
+  :abc print
+  close
+  pop
+
+  "abc.tmp" open
+  slurp
+  swap close
+  popnos
+end

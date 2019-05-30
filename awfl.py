@@ -21,12 +21,14 @@ CONDITIONAL = NOT, IF, EQ = 'not', 'if', 'eq'
 ORDERED = LE, GE = 'le', 'ge'
 VARIABLES = AS, UP, RM = 'as', 'up', 'rm'
 STRUCTURES = PULL, PUSH, PUSHI = 'pull', 'push', 'pushi'
+FILES = OPEN, CREATE, CLOSE, READ, WRITE = 'open', 'create', 'close', 'read', 'write'
+STREAMS = STDIN, STDOUT, STDERR = '_stdin', '_stdout', '_stderr'
 INTERRUPTS = BREAK, ERROR = 'break', 'error'
 TESTING = ASSERT, FROM = 'assert', 'from'
 INTERACTIVE = DEBUG, IGNORE, ON, OFF = 'debug', 'ignore', 'on', 'off'
 SOURCE = LIBS, INCLUDE = 'libs', 'include'
 RESERVED = set(reduce(lambda a, b: a + (list(b) if isinstance(b, tuple) else [b]), (NIL, SYMBOLS, NUMERICS, GROUPING, LISTS, TRUTH,
-    STACKOPS, FUNCTIONS, CONDITIONAL, ORDERED, VARIABLES, STRUCTURES, INTERRUPTS, TESTING, INTERACTIVE, SOURCE), []))
+    STACKOPS, FUNCTIONS, CONDITIONAL, ORDERED, VARIABLES, STRUCTURES, FILES, STREAMS, INTERRUPTS, TESTING, INTERACTIVE, SOURCE), []))
 DEFS = {ALIAS: END, ASSERT: FROM, DEF: END, FROM: END, GROUP: ENDGROUP, NEWLIST: ENDLIST, ERROR: EOL, BREAK: EOL}  # tokens that open and close a sublist in the token string
 NAMEDEFS = {k: v for k, v in DEFS.items() if k in (ALIAS, DEF)}  # the ones with a name following
 
@@ -34,7 +36,7 @@ NAMEDEFS = {k: v for k, v in DEFS.items() if k in (ALIAS, DEF)}  # the ones with
 INDENT_N = 2
 INDENTER = SPACE * INDENT_N
 TYPE, NUM = 'type', 'num'
-TYPES = CODE, NILT, BOOL, NUMBER, STRING, LIST, FUNC = -1, 0, 1, 2, 3, 4, 5  # of internal presentation dict[TYPE]
+TYPES = FILE, CODE, NILT, BOOL, NUMBER, STRING, LIST, FUNC = -2, -1, 0, 1, 2, 3, 4, 5  # of internal presentation dict[TYPE]
 
 
 class ParsingError(Exception): pass
@@ -46,6 +48,19 @@ class TokenIter(object):
   def __init__(_, tokens): _.alias, _.tokens = [], iter(tokens)
   def __next__(_): return _.alias.pop(0) if _.alias else next(_.tokens)
   def insertAlias(_, alias): _.alias = alias + _.alias  # prepend tokens
+
+
+try:  # from https://gist.github.com/payne92/11090057
+  import msvcrt
+  getch = msvcrt.getch
+except:  # Linux
+  import termios, tty
+  def getch():
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try: tty.setraw(sys.stdin.fileno()); ch = sys.stdin.read(1)
+    finally: termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    return ch
 
 
 def formatCodeBlock(lizt, indent = 0):
@@ -97,8 +112,8 @@ def makeList(lizt):
   >>> orderedDictRepresentation(makeList([1, [], [3, 5]]))
   [('0', 1), ('1', [('num', 0), ('type', 4)]), ('2', [('0', 3), ('1', 5), ('num', 2), ('type', 4)]), ('num', 3), ('type', 4)]
   '''
-  assert isinstance(lizt, list), "makeList requires a list argument, but was %r" % lizt
-  assert all([isinstance(_, (int, dict, list)) for _ in lizt]), "makeList requires a list of integers or nested lists, but was %r" % lizt
+  assert isinstance(lizt, list), "makeList requires a list argument, but got %r" % lizt
+  assert all([isinstance(_, (int, dict, list)) for _ in lizt]), "makeList requires a list of integers or nested lists, but got %r" % lizt
   dikt = {NUM: len(lizt), TYPE: LIST}
   for i in range(len(lizt)): dikt[str(i)] = lizt[i] if not isinstance(lizt[i], list) else makeList(lizt[i])
   return dikt
@@ -138,6 +153,14 @@ def makeBool(b):
   ''' Create a boolean entry. '''
   return {TYPE: BOOL, '0': -1 if b else 0}
 
+def makeFile(file, read):
+  ''' Create a open stream.
+  >>> print(sys.stderr is makeFile("_stderr", False)[None])
+  True
+  >>> fd = makeFile("awfl.py", True); print(fd[None].name)
+  awfl.py
+  '''
+  return {'type': FILE, 'read': read, None: {STDIN: lambda: sys.stdin, STDOUT: lambda: sys.stdout, STDERR: lambda: sys.stderr}.get(file, lambda: open(file, 'rb' if read else 'wb'))()}
 
 ## Get data back from internal representation
 def getType(dikt):
@@ -252,11 +275,12 @@ def internalAsString(e, indent = 0, prefix = ""):
   if   tipe == NILT: value = p + NIL  # noqa: E271
   elif tipe == BOOL: value = p + str(getBool(e))
   elif tipe == FUNC: value = p + REF + getString(e, allowed_types = (FUNC, ))
+  elif tipe == FILE: value = p + QUOTE + {sys.stdin: lambda: STDIN, sys.stdout: lambda: STDOUT, sys.stderr: lambda: STDERR}.get(e[None], lambda: e[None].name)() + QUOTE
   elif tipe in (NUMBER, STRING):
     assert NUM in e
-    value = p + (str(getNumber(e)) if tipe == NUMBER else ((QUOTE + getString(e) + QUOTE) if e[NUM] > 1 else SYMBOL + getString(e)))
+    value = p + (str(getNumber(e)) if tipe == NUMBER else ((QUOTE + getString(e) + QUOTE) if e[NUM] > 1 else (SYMBOL + getString(e) if e[NUM] > 0 else QUOTE * 2)))
   else: value = ""
-  try: keys = set(([TYPE] if TYPE in e and e[TYPE] in TYPES else []) + ([str(n) for n in range(e[NUM])] + ([NUM] if tipe in TYPES else []) if NUM in e else (['0'] if tipe == BOOL else [])))  # expected keys
+  try: keys = set(([TYPE, None] if TYPE in e and e[TYPE] in TYPES else []) + ([str(n) for n in range(e[NUM])] + ([NUM] if tipe in TYPES else []) if NUM in e else (['0'] if tipe == BOOL else [])))  # expected keys
   except TypeError as E: raise RuntimeViolation("did you use push instead of pushi? %r" % E)
   keys = set(e.keys()) - keys  # unexpected keys to display
   if tipe == LIST:  # list-like
@@ -324,7 +348,9 @@ def getVariable(inDict, key, remove = False):
     if debug: print("VARRM %s" % key)
     del inDict[prefix]
   else:
-    return copy.deepcopy(inDict[prefix]) if not isinstance(inDict[prefix], int) else makeNumber(inDict[prefix])
+    if isinstance(inDict[prefix], int): return makeNumber(inDict[prefix])
+    if inDict[prefix].get(TYPE, -999) == FILE: return inDict[prefix]
+    return copy.deepcopy(inDict[prefix])
 
 
 
@@ -368,7 +394,7 @@ def evaluate(tokens, namespaces, stack):
 
   if token in (DUP, POP):
     if not stack: raise RuntimeViolation("%s requires one value on the stack" % token)
-    if token == DUP: stack.append(copy.deepcopy(stack[-1]))
+    if token == DUP: stack.append(copy.deepcopy(stack[-1]) if stack[-1].get(TYPE, -999) != -2 else stack[-1])
     if token == POP: stack.pop()
     return
 
@@ -416,7 +442,7 @@ def evaluate(tokens, namespaces, stack):
     symbol = stack.pop(-1)
     if getType(symbol) == NUMBER: symbol = str(int(getNumber(symbol)))
     elif getType(symbol) == STRING: symbol = getString(symbol)
-    else: raise RuntimeViolation("%s requires one symbol or integer as key on the stack but was %r" % (token, symbol))  # TODO assert only legal characters in symbol (which are? dot? colon? alpha-numeric? use strings module)
+    else: raise RuntimeViolation("%s requires one symbol or integer as key on the stack but got %r" % (token, symbol))  # TODO assert only legal characters in symbol (which are? dot? colon? alpha-numeric? use strings module)
     parent = stack[-1]  # we leave the existing structure on the stack
     path = [_ for _ in symbol.split(DOT) if _ != ""]  # safe split
     if token == PULL:
@@ -434,6 +460,29 @@ def evaluate(tokens, namespaces, stack):
 #    if value == _NIL: del parent[path[-1]]  # pushing nil removes the entry TODO this is not consistent
 #    else:
     parent[path[-1]] = int(getNumber(value)) if token == PUSHI else value  # integrate into data structure
+    return
+
+  if token in FILES:  # streams IO
+    if len(stack) < (2 if token == WRITE else 1): raise RuntimeViolation("%s requires %d argument%s on the stack" % (token, 2 if token == WRITE else 1, "s" if token == WRITE else ""))
+    argument = stack.pop(-1) if token in (OPEN, CREATE, CLOSE) else stack[-2 if token == WRITE else -1]  # consume (open) or leave (r/w)
+    if getType(argument) != (STRING if token in (OPEN, CREATE) else FILE):
+      raise RuntimeViolation("%s requires one %s on the stack but got %r" % (token, "string" if token in (OPEN, CREATE) else "stream", argument))
+    if (token == CREATE and getString(argument) == "stdin") or (token == OPEN and getString(argument) in ("stdout", "stderr")):
+      raise RuntimeViolation("%s on %s not allowed" % (token, argument))
+    try:
+      if token == OPEN: stack.append(makeFile(getString(argument), True)); stack.insert(-1, makeBool(True)); return  # success
+      elif token == CREATE: stack.append(makeFile(getString(argument), False)); stack.insert(-1, makeBool(True)); return
+      elif token == CLOSE and argument[None] not in (sys.stdin, sys.stdout, sys.stderr): argument[None].close(); return
+    except: stack.extend([makeBool(False), {TYPE: NILT}]); return  # error
+    if token == READ:
+      value = getch() if argument[None] == sys.stdin else argument[None].read(1)
+      stack.append(makeNumber(ord(value)) if value not in ('', b'') else {TYPE: NILT})
+      return
+    value = stack.pop(-1)  # get value for WRITE
+    if getType(value) not in (CODE, NUMBER): raise RuntimeViolation("%s requires stream and codepoint on the stack" % WRITE)
+    value = bytes(bytearray([int(getNumber(value))]))
+    argument[None].write(value if argument[None] not in (sys.stdout, sys.stderr) else value.decode(sys.stdout.encoding))  # locale.getpreferredencoding()
+    if argument[None] in (sys.stdout, sys.stderr): argument[None].flush()
     return
 
   if token in (IF, NOT):  # common logic
@@ -537,11 +586,11 @@ def evaluate(tokens, namespaces, stack):
     expect, test = next(tokens), next(tokens)  # consume next two blocks
     if optimize: return  # skip running tests
     isstack, exstack = [], []  # always enable debug output during asserts
-    try: error = interpret(TokenIter(test),   copy.deepcopy(namespaces), isstack)
+    try: error = interpret(TokenIter(test),   [{k: copy.deepcopy(v) if not callable(v) and v.get(TYPE, -999) != FILE else v for k, v in namespace.items()} for namespace in namespaces], isstack)
     except RuntimeViolation as E: error = str(E)
     if error: isstack.append(makeString("ERROR " + error))
     if debug: print("STWAS " + stackStr(isstack))
-    try: error = interpret(TokenIter(expect), copy.deepcopy(namespaces), exstack)
+    try: error = interpret(TokenIter(expect), [{k: copy.deepcopy(v) if not callable(v) and v.get(TYPE, -999) != FILE else v for k, v in namespace.items()} for namespace in namespaces], exstack)
     except RuntimeViolation as E: error = str(E)
     if error: exstack.append(makeString("ERROR " + error))
     if debug: print("STEXP " + stackStr(exstack))

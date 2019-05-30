@@ -11,6 +11,7 @@ The result is a fun little programming language runtime that allows to write sta
 # Fibonacci implementation #
 
 include basics
+include console
 include stack
 
 
@@ -42,6 +43,8 @@ assert 0 from 0 fib end
 assert 1 from 1 fib end
 assert 8 from 6 fib end
 assert 6765 from 20 fib end
+
+"Enter a number: " input
 ```
 
 AWFUL's features include:
@@ -140,6 +143,19 @@ AWFUL's features include:
 ## Standard library dependency hierarchy ##
 - basic
   - selftests
+- console
+  - streams
+    - lists
+      - loops
+        - stack
+          - basics
+            - selftests
+  - strings
+    - lists
+      - loops
+        - stack
+          - basics
+            - selftests
 - lists
   - loops
     - stack
@@ -169,6 +185,16 @@ AWFUL's features include:
 - stack
   - basics
     - selftests
+- streams
+  - lists
+    - loops
+      - stack
+        - basics
+          - selftests
+  - types
+    - stack
+      - basics
+        - selftests
 - strings
   - lists
     - loops
@@ -182,6 +208,7 @@ AWFUL's features include:
 
 
 ## To do ##
+- add exception catching
 - automatic coercion rules and methods
   - we currently have `as-number`, `chr` and `ord` in `libs/types`, `is-nil` in `libs/basics` and `string-from-list` in `libs/strings`
 - let `up :name` automatically traverse namespaces until found, or raise Exception
@@ -199,8 +226,7 @@ AWFUL's features include:
 - allow more special character escaping (\n\r\t \0\xXX\uXXXX\UXXXXXXXX) in literal strings
 - use colored syntax in REPL
   - implement full grammar using some kind of parser library (?)
-- implement file handling and input/output processing
-- implement graphics processing, implement game of life
+- implement graphics processing, implement game of life for fun
 - add multi threading?
 
 

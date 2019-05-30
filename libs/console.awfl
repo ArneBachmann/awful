@@ -1,0 +1,47 @@
+# Console I/O #
+### input
+
+include streams  # so that users can rely on print being available as well
+include strings
+
+
+"_stdin"  open   as :stdin  unless error "Could not open stdin"
+"_stdout" create as :stdout unless error "Could not open stdout"
+"_stderr" create as :stderr unless error "Could not open stderr"
+
+
+## Get user input from the console ##
+```
+def input  1              # prompt
+  stdout swap print pop   # stdout prompt
+  nil as char             #    char -> nil
+  "" as result            #    result -> ""
+
+  def input-loop  0
+    stdin read            # stdin char
+    up .char              # stdin
+    pop                   # -
+    stdout char           # out char
+    write pop             # echo the character
+    char 13 eq if break   # leave loop
+    result char chr
+    string-concat
+    up .result
+    input-loop            # loop over
+  end  0
+
+  input-loop
+  stdout nl print pop
+  result
+end  1
+```
+
+## Test for user input ##
+#assert
+#  :abc
+#from
+#  include streams
+#  stdout "Hello World!" println
+#  pop
+#  "Enter abc: " input
+#end

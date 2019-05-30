@@ -20,7 +20,7 @@ def chr  1
   1 swap :num pushi   # set the string length to one
 end  1
   assert "7" from 55 chr end
-  assert "A" from 65 chr end
+  assert :A  from 65 chr end
 
 
 ## Convert string character into code point integer ##

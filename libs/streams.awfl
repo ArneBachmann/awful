@@ -1,0 +1,64 @@
+# Generic stream operations #
+### slurp, print, println
+
+
+include lists
+include types
+
+
+alias nl 10 chr end
+
+
+## Get entire stream contents ##
+```
+def slurp  1        # stream
+  as stream
+  [ ] as result
+
+  def read-loop  1
+    read            # stream code|nil
+    dup
+    is-nil if break pop
+    result swap list-append
+    up .result
+    read-loop       # loop
+  end  1
+
+  stream
+  read-loop
+  result string-from-list
+end 2
+```
+
+
+## Print a string to a stream ##
+```
+def print  2          # stream text
+  :num pull as len    #    len -> #code points
+  as prompt
+  as stream
+
+  def echo  1         # index
+    prompt swap pull  # prompt char-i
+    popnos            # char-i
+    stream swap write # output the character to the stream
+    pop               # clean stack
+  end  0
+
+  0 len 1 &echo for
+  stream
+end  1
+```
+
+
+## Print a string with a trailing newline character to a stream ##
+```
+def println  2          # stream text
+  nl string-concat      # append \n to string
+  1 pop
+  print
+end  1                  # stream
+```
+
+
+## Tests are performed in libs/files.awfl ##

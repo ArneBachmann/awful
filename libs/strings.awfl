@@ -34,7 +34,7 @@ end  1
 assert
   "abcde"
 from
-  "ab" "cde" string-concat
+  :ab "cde" string-concat
 end
 
 
