@@ -23,7 +23,7 @@ def for  3                     # first last+1 step function
     swap                       # count {}
     :last pull                 # count {} last
     rot3                       # {} last count
-    eq if break pop            # {} (count == last)
+    eq if break pop            # {} (count <= last) TODO use le here, but fails with "unhashable type list"
 
     # second, call the function
     :count pull                # {} count
@@ -52,7 +52,7 @@ from
   def 2times  1
     2 *         # increase value
   end  1        # function that multiplies by 2
-    assert 4 from 2 2times end    # nested test
+    assert 4  from 2 2times end   # nested test
     assert 16 from 8 2times end   # nested test
 
   def loop-func  2
@@ -60,9 +60,67 @@ from
     2times      # multiply
   end  1
   1                               # initial value
-  1 9 1 &loop-func for               # count upwards: 9 = > last
+  1 9 1 &loop-func for            # count upwards: 9 = > last
   1                               # initial value
-  8 0 -1 &loop-func for              # count downwards: 0 = < last
+  8 0 -1 &loop-func for           # count downwards: 0 = < last
+end
+
+
+## Interruptible for loop with a return value ##
+def forbreak  4     # from to step func
+  False as stopped  # flag to stop the loop
+  nil as returned   # return value
+
+  def break'  1           # can be called to stop the loop
+    True up .....stopped
+    up      .....returned
+  end  0
+
+  def each  1             # index
+    stopped if break pop  # ignore this iteration (until last)
+    func' apply            # call the original function
+  end  0
+
+  as func'          # index -> -
+  &each for         # replace call to func by each function
+  returned
+end  1              # return value from loop
+assert
+  5
+from
+  def until5  1
+    dup 5 eq if break break'  # don't compute the remaining iterations
+    pop
+  end  0
+  3 9 1 &until5 forbreak
+end
+
+
+## Conditional loop #
+def while 2                   # predicate 0->bool function 0->0
+  as func
+  as pred
+
+  def while'  0               # the loop
+    pred apply unless break   # leave the loop
+    func apply
+    while'                    # tail recursion
+  end  0
+
+  while'
+end  0
+assert
+  19873012250342044933876323243536725795573361572335445760471484541737760392533800435569122898705703960201510224425798062253366862190081/100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+from
+  1.1 as a
+  def testpred  0
+    a 1000 lt
+  end  1
+  def testfunc  0
+    a a * up ...a     # math.sqr
+  end  0
+  &testpred &testfunc while
+  a
 end
 
 

@@ -172,6 +172,7 @@ AWFUL's features include:
         - basics
           - selftests
 - maths
+  - loops ...
   - stack
     - basics
       - selftests
@@ -208,26 +209,23 @@ AWFUL's features include:
 
 
 ## To do ##
+- option to run assert statements only once (not on every call?)
 - add exception catching
-- automatic coercion rules and methods
-  - we currently have `as-number`, `chr` and `ord` in `libs/types`, `is-nil` in `libs/basics` and `string-from-list` in `libs/strings`
 - let `up :name` automatically traverse namespaces until found, or raise Exception
-- refactor literal lists and functions into one static table
+- refactor literal lists and functions into one big static table
   - function invariant checking should be done in the interpreter, not in Python functions
 - add evaluated lists (?)
 - add dynamic functions (?)
   - make distinction between dynamic and static functions/aliases?
-- make decimal precision configurable in user code
 - improve error reporting - often you only get obscure Python exceptions without a more specific AWFUL hint
   - leave file and line number in items
 - add polymorphism?
 - remove all EOLs from item string?
-- profile performance
 - allow more special character escaping (\n\r\t \0\xXX\uXXXX\UXXXXXXXX) in literal strings
 - use colored syntax in REPL
   - implement full grammar using some kind of parser library (?)
 - implement graphics processing, implement game of life for fun
-- add multi threading?
+- add multi threading capabilities?
 
 
 ## Defined types ##

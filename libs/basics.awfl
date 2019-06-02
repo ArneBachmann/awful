@@ -1,5 +1,5 @@
 # Basic definitions #
-### unless, and, or, negate, ne, gt, lt, nand, nor, is-nil, is-neg, is-pos, is-zero
+### unless, and, or, negate, ne, gt, lt, nand, nor, is-nil, not-nil, is-neg, is-pos, is-zero
 
 include selftests
 
@@ -103,6 +103,8 @@ end
 def is-nil  1   # value
   nil eq        # value-is-nil
 end  1
+
+alias not-nil is-nil not end
 ```
   assert True from nil is-nil end
   assert False from 0 is-nil end

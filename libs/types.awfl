@@ -14,6 +14,18 @@ end  1
   assert True :ERROR from True as-number end
 
 
+## Convert number into string ##
+def as-string  1
+  :type pull 3 eq if break    # nothing to do for strings
+  :type pull 2 eq unless error "as-string requires a number"
+  3 swap :type pushi
+end  1
+  assert "34.56" from "34.56" as-string end
+  assert :864/25 from 34.56 as-string end
+  assert :2 from 2 as-string end
+  assert "7/8" from 7 8 // popnos as-string end
+
+
 ## Convert codepoint integer into string character ##
 def chr  1
   "" 0 pushi          # put the ord from TOS into an empty string
@@ -25,11 +37,12 @@ end  1
 
 ## Convert string character into code point integer ##
 def ord  1
-  0 pull
+  0 pull    # assume single-character string
   popnos
 end  1
   assert 51 from 3 ord end
   assert 65 from :A ord end
+  assert 66 from "BCD" ord end
 
 
 ## Tests ##

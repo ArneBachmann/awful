@@ -2,7 +2,6 @@
 
 import copy, decimal, doctest, fractions, os, sys
 from functools import reduce
-decimal.getcontext().prec = 10000  # define decimal precision before applying float techniques
 
 
 # Reserved language words and operators
@@ -25,7 +24,7 @@ FILES = OPEN, CREATE, CLOSE, READ, WRITE = 'open', 'create', 'close', 'read', 'w
 STREAMS = STDIN, STDOUT, STDERR = '_stdin', '_stdout', '_stderr'
 INTERRUPTS = BREAK, ERROR = 'break', 'error'
 TESTING = ASSERT, FROM = 'assert', 'from'
-INTERACTIVE = DEBUG, IGNORE, ON, OFF = 'debug', 'ignore', 'on', 'off'
+INTERACTIVE = DEBUG, IGNORE, ON, OFF, HERE = 'debug', 'ignore', 'on', 'off', 'here'
 SOURCE = LIBS, INCLUDE = 'libs', 'include'
 RESERVED = set(reduce(lambda a, b: a + (list(b) if isinstance(b, tuple) else [b]), (NIL, SYMBOLS, NUMERICS, GROUPING, LISTS, TRUTH,
     STACKOPS, FUNCTIONS, CONDITIONAL, ORDERED, VARIABLES, STRUCTURES, FILES, STREAMS, INTERRUPTS, TESTING, INTERACTIVE, SOURCE), []))
@@ -33,9 +32,9 @@ DEFS = {ALIAS: END, ASSERT: FROM, DEF: END, FROM: END, GROUP: ENDGROUP, NEWLIST:
 NAMEDEFS = {k: v for k, v in DEFS.items() if k in (ALIAS, DEF)}  # the ones with a name following
 
 # Further constants
-INDENT_N = 2
-INDENTER = SPACE * INDENT_N
-TYPE, NUM = 'type', 'num'
+INDENT_N = 2  # spaces per indentation step
+INDENT = SPACE * INDENT_N
+TYPE, NUM, NONE = 'type', 'num', None  # reserved fields in internal data representation
 TYPES = FILE, CODE, NILT, BOOL, NUMBER, STRING, LIST, FUNC = -2, -1, 0, 1, 2, 3, 4, 5  # of internal presentation dict[TYPE]
 
 
@@ -71,7 +70,7 @@ def formatCodeBlock(lizt, indent = 0):
   i, n, s = 0, len(lizt), []
   while i < n:
     elem = lizt[i]; i += 1
-    if elem == EOL: s.append("\n" + INDENTER * indent)
+    if elem == EOL: s.append("\n" + INDENT * indent)
     if elem in DEFS or elem[0] in DEFS:
       s.append(elem + " ")
       i += 1; s.extend(formatCodeBlock(lizt[i - 1], indent + 1))
@@ -155,12 +154,12 @@ def makeBool(b):
 
 def makeFile(file, read):
   ''' Create a open stream.
-  >>> print(sys.stderr is makeFile("_stderr", False)[None])
+  >>> print(sys.stderr is makeFile("_stderr", False)[NONE])
   True
-  >>> fd = makeFile("awfl.py", True); print(fd[None].name)
+  >>> fd = makeFile("awfl.py", True); print(fd[NONE].name)
   awfl.py
   '''
-  return {'type': FILE, 'read': read, None: {STDIN: lambda: sys.stdin, STDOUT: lambda: sys.stdout, STDERR: lambda: sys.stderr}.get(file, lambda: open(file, 'rb' if read else 'wb'))()}
+  return {'type': FILE, 'read': read, NONE: {STDIN: lambda: sys.stdin, STDOUT: lambda: sys.stdout, STDERR: lambda: sys.stderr}.get(file, lambda: open(file, 'rb' if read else 'wb'))()}
 
 ## Get data back from internal representation
 def getType(dikt):
@@ -228,7 +227,7 @@ def getBool(dikt):
   return False if dikt['0'] == 0 else True
 
 
-TYPE2FUNC = {NILT: lambda _: None, BOOL: getBool, CODE: lambda i: i, NUMBER: getNumber, STRING: getString, LIST: getList}  # getter functions by data type
+TYPE2FUNC = {NILT: lambda _: NONE, BOOL: getBool, CODE: lambda i: i, NUMBER: getNumber, STRING: getString, LIST: getList}  # getter functions by data type
 TYPE2NAME = {NILT: NIL, BOOL: 'boolean', CODE: 'code', NUMBER: 'number', STRING: 'string', LIST: 'list', FUNC: 'function'}  # type names by data type
 def fromValue(value): tipe = getType(value); return repr(value) if tipe not in TYPE2FUNC else TYPE2FUNC[tipe](value)
 
@@ -268,19 +267,19 @@ def internalAsString(e, indent = 0, prefix = ""):
   >>> print(internalAsString({'type': 5, 'num': 1, '0': 97}))
   &a
   '''
-  i = INDENTER * indent; j = i + INDENTER; p = (i if not prefix else "")  # first and second level indentation
+  i = INDENT * indent; j = i + INDENT; p = (i if not prefix else "")  # first and second level indentation
   assert isinstance(e, int) or (isinstance(e, dict) and TYPE in e), "wrong type %r" % e  # int and list = internal dict values
   if isinstance(e, int): return p + str(e)  # pure integer codes
   tipe = e[TYPE]
   if   tipe == NILT: value = p + NIL  # noqa: E271
   elif tipe == BOOL: value = p + str(getBool(e))
   elif tipe == FUNC: value = p + REF + getString(e, allowed_types = (FUNC, ))
-  elif tipe == FILE: value = p + QUOTE + {sys.stdin: lambda: STDIN, sys.stdout: lambda: STDOUT, sys.stderr: lambda: STDERR}.get(e[None], lambda: e[None].name)() + QUOTE
+  elif tipe == FILE: value = p + QUOTE + {sys.stdin: lambda: STDIN, sys.stdout: lambda: STDOUT, sys.stderr: lambda: STDERR}.get(e[NONE], lambda: e[NONE].name)() + QUOTE
   elif tipe in (NUMBER, STRING):
     assert NUM in e
     value = p + (str(getNumber(e)) if tipe == NUMBER else ((QUOTE + getString(e) + QUOTE) if e[NUM] > 1 else (SYMBOL + getString(e) if e[NUM] > 0 else QUOTE * 2)))
   else: value = ""
-  try: keys = set(([TYPE, None] if TYPE in e and e[TYPE] in TYPES else []) + ([str(n) for n in range(e[NUM])] + ([NUM] if tipe in TYPES else []) if NUM in e else (['0'] if tipe == BOOL else [])))  # expected keys
+  try: keys = set(([TYPE, NONE] if TYPE in e and e[TYPE] in TYPES else []) + ([str(n) for n in range(e[NUM])] + ([NUM] if tipe in TYPES else []) if NUM in e else (['0'] if tipe == BOOL else [])))  # expected keys
   except TypeError as E: raise RuntimeViolation("did you use push instead of pushi? %r" % E)
   keys = set(e.keys()) - keys  # unexpected keys to display
   if tipe == LIST:  # list-like
@@ -297,7 +296,7 @@ def stackStr(stack):
   return (("<\n" if len(stack) > 1 else "<") + "\n".join([internalAsString(_, 0 if len(stack) == 1 else 1) for _ in stack]) + ("\n>" if len(stack) > 1 else ">")) if len(stack) > 0 else "< >"
 
 def _namespaceStr(namespace):
-  return ",\n".join(["%s%s -> %s" % (2 * INDENTER, k, REF + v.name if callable(v) else internalAsString(v, 1)) for k, v in sorted(namespace.items())])
+  return ",\n".join(["%s%s -> %s" % (2 * INDENT, k, REF + v.name if callable(v) else internalAsString(v, 1)) for k, v in sorted(namespace.items())])
 
 def namespaceStr(namespaces):
   return "NAMES\n  [%s\n  ]" % "\n  ], [".join([("\n" if namespace else "") + _namespaceStr(namespace) for namespace in namespaces])  # last two depths
@@ -305,12 +304,12 @@ def namespaceStr(namespaces):
 
 ## Working with nested variables
 def variableTraversal(inDict, key):
-  while key.endswith(DOT): key = key[:-1]  # remove trailing dots
   while DOT in key:
     i = key.index(DOT)  # from left
     prefix, remainder = key[:i], key[i + 1:]
     yield inDict, prefix
     inDict, key = inDict[prefix], remainder
+  while key.endswith(DOT): key = key[:-1]  # remove trailing dots
   if key == '': return
   yield inDict, key
 
@@ -327,13 +326,15 @@ def storeVariable(inDict, key, value, update = False, original = None):
   RuntimeViolation: variable element 'a' not defined for 'a.b'
   '''
   assert isinstance(inDict, dict), "storeVariable not on namespace %r" % inDict
-  assert isinstance(key, str), "storeVariable with wrong key type %r" % key
-  assert isinstance(value, dict), "storeVariable with wrong value type %r" % value
+  assert isinstance(key,    str),  "storeVariable with wrong key type %r" % key
+  assert isinstance(value,  dict), "storeVariable with wrong value type %r" % value
   for inDict, prefix in variableTraversal(inDict, key):
-    if prefix not in inDict:
-      if update: raise RuntimeViolation("variable element %r not defined for %r" % (prefix, original if original else key))
-      inDict[prefix] = {}
-    elif not update: raise RuntimeViolation("variable element %r already defined for %r" % (prefix, original if original else key))
+    try:
+      if prefix not in inDict:
+        if update: raise RuntimeViolation("variable element %r not defined for %r" % (prefix, original if original else key))
+        inDict[prefix] = {}
+      elif not update: raise RuntimeViolation("variable element %r already defined for %r" % (prefix, original if original else key))
+    except TypeError: import pdb; pdb.set_trace()
   if debug: print("%s %s -> %s" % ("VARUP" if update else "VARDF", key, internalAsString(value)))
   inDict[prefix] = value
 
@@ -380,6 +381,7 @@ def evaluate(tokens, namespaces, stack):
   if token in (EOL, TAIL_RECURSION): return None if token is EOL else TAIL_RECURSION
 
   if debug:
+    if debug == "this": debug = False  # reset flag after printout
     print("STACK " + stackStr(stack))
     if debug == "all": print(namespaceStr(namespaces))
     if '--items' in sys.argv: print("TOKEN %s" % ({EOL: "EOL", TAIL_RECURSION: "TAILR"}.get(token, repr(token))))
@@ -433,6 +435,8 @@ def evaluate(tokens, namespaces, stack):
     if -count > len(namespaces): raise RuntimeViolation("too many parent indirections in variable name %r" % _name)
     if token == RM: getVariable(namespaces[count], name, remove = True); return
     value = stack.pop()  # get internal dict representation
+    prefix = name if DOT not in name else name[:name.index(DOT)]
+    while token == UP and -count < len(namespaces) and (prefix not in namespaces[count] or callable(namespaces[count][prefix])): count -= 1  # find namespace with variable to update
     storeVariable(namespaces[count], name, value, update = token == UP, original = _name)
     return
 
@@ -513,7 +517,7 @@ def evaluate(tokens, namespaces, stack):
       else: stack.append(makeBool(orderedDictRepresentation(a) == orderedDictRepresentation(b)))
     else:  # if token in ORDERED:  # LE lower or equal, GE greater or equal
       if token == GE: a, b, c, d, A, B = b, a, d, c, B, A  # reverse arguments to keep rest of implementation the same
-      if c in (BOOL, NUMBER, STRING): stack.append(makeBool(A <= B if c == d else str(A) <= str(B)))
+      if c in (NUMBER, STRING): stack.append(makeBool(A <= B if c == d else str(A) <= str(B)))
       else: stack.append(makeBool(orderedDictRepresentation(a) <= orderedDictRepresentation(b)))
     return
 
@@ -600,7 +604,7 @@ def evaluate(tokens, namespaces, stack):
       for i, e in zip(isstack, exstack)]),\
         "SHOULD %s BUT WAS %s for %s" % (stackStr(exstack), stackStr(isstack), formatCodeBlock(test))
     except Exception as E:
-      try: print(str(E) + "\nSTWAS " + stackStr(isstack) + " = %r" % isstack)
+      try: print("Error %r in %r" % (E, test) + "\nSTWAS " + stackStr(isstack) + " = %r" % isstack)
       except: print("ERROR %r" % test)
       if '--interactive' in sys.argv: import pdb; pdb.set_trace()
     return
@@ -724,6 +728,7 @@ def parse(file, tokens, i = -1, until = END, comments = True):
     elif x == DEBUG:
       t.append(x); i += 1
       if i >= n: Error("{x} requires one argument", {"x": x, "file": file, "l": tokens[i + 1][0]})
+      if tokens[i][1] not in (ON, OFF, HERE, ASSERT, "all", "this"): Error("{x} wrong argument {y}", {"x": x, "y": tokens[i][1], "file": file, "l": tokens[i][0]})
       t.append(tokens[i][1])
     elif len(x.replace(DOT, "")) == 0: Error("syntax error {x}", vars())
     else: t.append(x)
@@ -741,22 +746,25 @@ def include(name, file, line):
   tokens = tokenize(data)
   if debug: print("Loaded %d tokens from %r" % (len(tokens), path))
   maxline = max(dict(tokens).keys()) + 1  # add virtual last line
-  tokens += [_ for _ in zip([maxline, maxline, maxline], ["ignore", "off", EOL])]
+  tokens += [_ for _ in zip([maxline, maxline, maxline], ["ignore", "off", EOL])]  # ensure that ignore area ends after each file
   return tokens
 
 
 if __name__ == '__main__':
   if '--help' in sys.argv: print("""AWFUL V0.1  (C) 2019 Arne Bachmann
-    --debug        show parser info and enable live debugger
-    --tokens       show tokens at parsetime
-    --items        show processed items at runtime
-    --optimize     remove most comments and safety checks from runtime
+    --debug         show parser info and enable live debugger
+    --tokens        show tokens at parsetime
+    --items         show processed items at runtime
+    --optimize      remove most comments and safety checks from runtime
+    --decimals <n>  set decimal computation precision
 
-    debug on       show what happens in the runtime
-    debug all      show all namespace entries
-    debug assert   start debugger at each assert
-    debug <token>  start debugger at each <token>\n"""); sys.exit(0)
+    debug on        show what happens in the runtime
+    debug all       show all namespace entries
+    debug assert    start debugger at each assert
+    debug <token>   start debugger at each <token>\n"""); sys.exit(0)
   debug = False; error, count = doctest.testmod()  # must define debug here to have it in test cases
+  if '--decimals' in sys.argv: index = sys.argv.index('--decimals'); decimal.getcontext().prec = int(sys.argv[index + 1]); del sys.argv[index:index+2]  # define decimal precision before applying float techniques
+  else: decimal.getcontext().prec = 1000
   if error != 0: raise Exception("%d out of %d self-tests failed" % (error, count))
   callstack, includes, stack, namespaces, aliases, debug, optimize, items = [], set(), [], [{}], {}, "system" if '--debug' in sys.argv else False, '--optimize' in sys.argv, []  # stack and global namespace
   size = lambda l: sum([1 if not isinstance(_, list) else size(_) for _ in l]); assert 5 == size([1, 2, 3, [3, 4]])

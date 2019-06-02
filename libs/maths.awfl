@@ -1,6 +1,9 @@
 # Maths #
 
+include lists
 include stack
+include strings
+include types
 
 
 ## Division ##
@@ -67,3 +70,169 @@ from
   128 lsh
   7 lsh
 end
+
+
+## Square of a number ##
+```
+def sqr  1
+  dup *
+end  1
+```
+assert
+  4 9 16
+from
+  2 sqr
+  3 sqr
+  4 sqr
+end
+
+
+
+## Compute square root ##
+```
+def sqrt  2                 # number decimals
+  as digits
+  as value
+
+  ### First, find the order of magnitude
+  1 as factor   # multiplication factor for order of magnitude computation
+  1 as dotpos   # position of dot to insert for numerator
+  "" as root    # the found root (always a string)
+
+  ### while (factor)^2 > value: factor /= 10 ; otherwise:
+  def checkdivide  0
+    factor sqr value gt
+  end 1
+  assert
+    False True
+  from
+    10 up value
+    1  up factor checkdivide
+    10 up factor checkdivide
+  end
+  def divide  0
+    factor 10 / up factor
+    root :0 string-concat up root   # prefix ("0" -> 0._ "00" -> 0.0_)
+  end  0
+  assert
+    10 1 0.1
+  from
+    100 up factor
+    divide factor
+    divide factor
+    divide factor
+  end
+  &checkdivide &divide while
+
+  ### while (factor)^2 < value: factor *= 10
+  def checkmultiply  0
+    factor 10 * sqr value le
+  end  1
+  assert
+    True False
+  from
+    10  up value
+    0.1 up factor checkmultiply
+    1   up factor checkmultiply
+  end
+  def multiply  0
+    factor 10 * up factor
+    dotpos 1 + up dotpos      # index of dot increased by order of magnitude (x10: 2 (1_.), x100: 3 (1__.))
+  end  0
+  assert
+    0.1
+    1
+    10
+  from
+    0.01 up factor
+    multiply factor
+    multiply factor
+    multiply factor
+  end
+  &checkmultiply &multiply while
+  rm factor
+
+  ### Function to build the resulting root
+  def build-number  1   # root-digits on stack
+    as-number
+    as root'
+
+    def too-short  0
+      root' string-len dotpos lt
+    end  1
+    def extend  0
+      root' :0 string-concat up root'
+    end  0
+    &too-short &extend while    # for larger orders of magnitude, expand with required number of zeros (dotpos = 2, root = "3": 30._)
+    root' dotpos "." string-insert-at
+  end  1
+  assert
+    10
+    131/10
+    657/500
+    131/100
+  from
+    2      up dotpos
+    :1     build-number as-number
+    "131"  build-number as-number
+    1      up dotpos
+    "1314" build-number as-number
+    "0"    up root
+    "131"  build-number as-number
+  end
+
+  def checkdigit  1   # index
+    as index
+    root index as-string string-concat build-number as-number sqr     # append new digit
+    value gt if break index 1 - break'      # set loop return value to last index (before larger)
+  end  0
+  assert
+    nil 3 nil 1
+  from  # test sqrt(1000)
+    def break' 1 up found end 0
+    ""   up root
+    2    up dotpos  # x10
+    1000 up value
+    nil  as found 3 checkdigit found
+    nil  up found 4 checkdigit found
+    2    up value  # sqrt(2)
+    "14" up root
+    1    up dotpos   # 1.4*1.4 = 1.96
+    nil up found 1 checkdigit found   # 1.41*1.41 < 2
+    nil up found 2 checkdigit found   # 1.42*1.42 > 2
+  end
+
+  def finddigit  1              # index
+    pop                         # index not needed
+    1 10 1 &checkdigit forbreak
+    dup is-nil if ( pop 9 )     # break' didn't fire: must be larger than 9
+    root swap as-string string-concat up root   # append new digit
+  end  0
+  assert
+    :1.41
+  from
+    "14" up root
+    1 up dotpos    # 1.4
+    2 up value
+    nil finddigit root build-number
+  end
+
+  0 digits 1 &finddigit for     # find given number if digits by interval splitting
+  root build-number
+end  1
+```
+assert
+  1 2 :3.0 :4.00 :5.
+  :9.9498 10 10
+from
+  1 1 sqrt as-number
+  4 3 sqrt as-number
+  9 2 sqrt
+  16 3 sqrt
+  25 1 sqrt
+  99  5 sqrt
+  100 3 sqrt as-number
+  101 3 sqrt as-number
+end
+
+## Compute pi constant ##

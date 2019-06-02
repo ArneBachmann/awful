@@ -1,5 +1,5 @@
 # List operations #
-### list-create, list-copy, list-concat, list-split-at, list-max, list-min, list-sum, list-find, list-append
+### list-create, list-get, list-copy, list-concat, list-split-at, list-max, list-min, list-sum, list-find, list-append
 
 include loops
 
@@ -21,6 +21,12 @@ from
   :type pull                      # 0 [] 4
   rot3                            # [] 4 0
 end
+
+
+## Get an list element ##
+def list-get  2     # list index
+  pull
+end  2
 
 
 ## Helper function to copy elements between list structures ##
@@ -302,4 +308,26 @@ assert
   [ 3 2 ]
 from
   [ 1 2 3 ] 0 list-swap-last
+end
+
+
+## Create a range of integers ##
+```
+def range  3                # from to+1 step
+  list-create as list
+
+  def add-next  1
+    list
+    swap list-append
+    up ...list
+  end  0
+
+  &add-next for
+  list
+end  1
+```
+assert
+  [ 2 4 6 ]
+from
+  2 8 2 range  # TODO 2 7 2 range doesn't work currently, fix for loop first
 end

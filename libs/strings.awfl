@@ -1,4 +1,5 @@
 # String operations #
+### string-from-list, string-concat, string-split-at, string-len, string-insert-at
 
 include lists
 
@@ -21,8 +22,10 @@ def string-from-list  1   # l
 end  1
 assert
   "abc"
+  "54343/1000"
 from
   [ 97 98 99 ] string-from-list
+  54.343 string-from-list
 end
 
 
@@ -53,3 +56,35 @@ from
   "abcde" 3 string-split-at
 end
 assert "abcde" from "abcde" 2 string-split-at string-concat end
+
+
+## Get string length
+def string-len  1
+  :num pull popnos
+end  1
+assert
+  3 0 1
+from
+  "abc" string-len
+  "" string-len
+  :c string-len
+end
+
+
+## Insert a string at a position ##
+def string-insert-at  3     # string index insert-string
+  as toinsert
+  as index
+  index string-split-at     # prefix suffix
+  swap toinsert string-concat
+  swap string-concat
+end  1
+assert
+  :axbc
+  :xabc
+  :abcx
+from
+  "abc" 1 :x string-insert-at
+  "abc" 0 :x string-insert-at
+  "abc" 3 :x string-insert-at
+end

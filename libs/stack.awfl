@@ -207,6 +207,6 @@ end 1         # a if c else b
 assert
   :a :d
 from
-  :a :b True cond
+  :a :b True  cond
   :c :d False cond
 end

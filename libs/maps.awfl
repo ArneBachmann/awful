@@ -32,7 +32,6 @@ def map-set  3              # map k v
   as value                  # map k   value -> v
   as key                    # map   key -> k
   as map                    #   map -> map
-  map.keys.num as num       #   num -> map.keys:num
   map.keys key list-find    # index|nil
   as index                  #   index -> index
   unless break (            # (not found)
@@ -40,7 +39,7 @@ def map-set  3              # map k v
     map.values value list-append up map.values
     map
   )  # store new and break
-  key map.keys index push up map.keys
+  key   map.keys   index push up map.keys
   value map.values index push up map.values
   map
 end  1
