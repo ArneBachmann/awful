@@ -4,6 +4,29 @@
 include selftests
 
 
+## Division ##
+def /  2
+  // 1 nib pop  # popnos
+end  1
+assert
+  5/3
+from
+  5. 3. /
+end
+
+
+## Modulo ##
+def %  2
+  // pop
+end  1
+assert
+  2
+from
+  5 3 %
+end
+
+
+
 ```
 alias unless  # must be defined as alias, not as function, due to the following if block
   not if

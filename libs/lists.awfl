@@ -1,6 +1,7 @@
 # List operations #
-### list-create, list-get, list-copy, list-concat, list-split-at, list-max, list-min, list-sum, list-find, list-append
+### list-create, list-len, list-get, list-copy, list-concat, list-split-at, list-max, list-min, list-sum, list-find, list-append, list-swap-last, list-reverse, reverse, range, filter
 
+include basics
 include loops
 
 
@@ -23,9 +24,22 @@ from
 end
 
 
+## Determine length of list ##
+def list-len  1
+  :num pull
+end  2
+assert
+  0 1 2
+from
+  [ ] list-len popnos
+  [ :x ] list-len popnos
+  [ 1 2 ] list-len popnos
+end
+
+
 ## Get an list element ##
 def list-get  2     # list index
-  pull
+  pull              # list elem
 end  2
 
 
@@ -280,9 +294,9 @@ end
 ```
 def list-append  2              # list value
   as value
-  as list
-  value list list.num push      # store new value
-  list.num 1 + swap :num pushi  # increase length
+  as list'
+  value list' list'.num push      # store new value
+  list'.num 1 + swap :num pushi  # increase length
 end  1                          # list
 ```
 assert
@@ -311,23 +325,146 @@ from
 end
 
 
+## Reverse a list ##
+alias floor' dup 1 % - end
+```
+def list-reverse  1
+  list-len as num
+  as list'
+
+  def swap2  1
+    as i
+    list' i pull swap     # elem-i list
+    num i - 1 - pull      # elem-i list elem-i-n-1
+    swap                  # elem-i elem-i-n-1 list
+    i push                # elem-i list
+    num i - 1 - push      # list
+    up list'
+  end  0
+
+
+  0 num 2 / floor' 1 &swap2 for    # 4: 0..1(3..2), 5: 0..1(4..3)
+  list'
+end  1
+```
+assert
+  [ ]
+  [ 0 ]
+  [ 1 0 ]
+  [ 2 1 0 ]
+  [ 3 2 1 0 ]
+from
+  [ ] list-reverse
+  [ 0 ] list-reverse
+  [ 0 1 ] list-reverse
+  [ 0 1 2 ] list-reverse
+  [ 0 1 2 3 ] list-reverse
+end
+
+
+## Consume elements from stack into one list. ##
+```
+def list-from-stack  2    # elements num
+  as n
+  list-create
+
+  def pull'  1    # elements... list
+    n is-zero if break
+    n 1 - up n
+    swap          # elements list elem
+    list-append   # append element to end of list (reversed)
+    pull'
+  end  nil
+
+  pull'
+  list-reverse
+end  nil
+```
+assert
+  1 [ 2 3 ]
+from
+  1 2 3 2 list-from-stack
+end
+
+
+## Expand list to stack ##
+def list-to-stack  1
+  :num pull as n
+  0 as i
+
+  def push'  1            # list'
+    i n eq if break pop   # break condition
+    i list-get            # list' elem-i
+    i 1 + up i            # i->i+1
+    swap                  # elem-i list'
+    push'
+  end  nil
+  push'
+end  nil
+assert
+  1 2 3
+from
+  1 [ 2 3 ] list-to-stack
+end
+
+
+## Reverse order of elements on stack. TODO could also be implemented using only nib and bin ##
+def reverse  2  # elements... num
+  list-from-stack
+  list-reverse
+  list-to-stack
+end  1
+assert
+  3 2 1
+from
+  1 2 3 3 reverse
+end
+
+
 ## Create a range of integers ##
 ```
 def range  3                # from to+1 step
-  list-create as list
+  list-create as list'
 
   def add-next  1
-    list
+    list'
     swap list-append
-    up ...list
+    up list'
   end  0
 
   &add-next for
-  list
+  list'
 end  1
 ```
 assert
   [ 2 4 6 ]
 from
-  2 8 2 range  # TODO 2 7 2 range doesn't work currently, fix for loop first
+  2 8 2 range     # TODO 2 7 2 range doesn't work currently, fix for loop first
+end
+
+
+## Filter a list ##
+def filter  2       # list predicate
+  as pred           # elem->bool
+  :num pull as num  # num->list.num
+  as list'
+  [ ] as result
+
+  def step  1
+    list' swap pull popnos dup
+    pred apply unless break pop
+    result swap list-append up result
+  end  0
+
+  0 num 1 &step for
+  result
+end  1
+assert
+  [ 1 3 5 7 9 ]
+from
+  def odd  1
+    2 % 1 eq
+  end  1
+  assert True False True False from 1 odd 2 odd -1 odd 0 odd end
+  [ 0 1 2 3 4 5 6 7 8 9 ] &odd filter     # 0 10 1 range
 end

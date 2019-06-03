@@ -434,8 +434,7 @@ def evaluate(tokens, namespaces, stack):
     while name[0] == DOT: count -= 1; name = name[1:]  # find determine parent namespace
     if -count > len(namespaces): raise RuntimeViolation("too many parent indirections in variable name %r" % _name)
     if token == RM: getVariable(namespaces[count], name, remove = True); return
-    value = stack.pop()  # get internal dict representation
-    prefix = name if DOT not in name else name[:name.index(DOT)]
+    value, prefix = stack.pop(), name if DOT not in name else name[:name.index(DOT)]  # get internal dict representation
     while token == UP and -count < len(namespaces) and (prefix not in namespaces[count] or callable(namespaces[count][prefix])): count -= 1  # find namespace with variable to update
     storeVariable(namespaces[count], name, value, update = token == UP, original = _name)
     return
@@ -704,7 +703,7 @@ def parse(file, tokens, i = -1, until = END, comments = True):
       if x in (ALIAS, DEF) and tokens[i + 1][1] in RESERVED: Error("{x} name is a reserved symbol %s" % tokens[i + 1][1], vars())
       u, i = parse(file, tokens, i, DEFS[x], comments = x not in (NEWLIST, GROUP))  # recursive list parsing
       t.append(u)  # add recursive list
-      if len(u) < {ALIAS: 2, DEF: 3}.get(x, 0): Error("{x} body with insufficient contents", vars())
+      if len(u) < {ALIAS: 2, DEF: 3}.get(x, 0): Error("{x} body with insufficient contents (forgot a closing keyword earlier?)", vars())
       if x == ERROR and "".join([u[0][0], u[0][-1]]) != '""': Error("{x} without error message" , vars())
       elif x == DEF:
         if not isinstance(u[0], str): Error("{x} name missing", vars())

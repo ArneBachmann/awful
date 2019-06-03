@@ -55,11 +55,11 @@ AWFUL's features include:
 - local namespaces
 - nested variable structures (`a`, `a.b`)
 - built-in testing capabilities (`assert` statement)
-- function references `&`
-- extensive internal state machine logging `--debug`, `--items`, `debug on`, `debug all`
-- nested file `include`
+- function references and variables `&`
+- extensive internal state machine logging `--debug`, `--items`, `debug on/off`
+- nested `include`
 - source files are valid Markdown documents
-- general appearance similar to Python code
+- general appearance and terminology inspired by Python
 
 
 ## Definitions ##
@@ -210,8 +210,8 @@ AWFUL's features include:
 
 ## To do ##
 - option to run assert statements only once (not on every call?)
-- add exception catching
-- let `up :name` automatically traverse namespaces until found, or raise Exception
+  - add test vs. assert
+- add exception catching: try block catch block end?
 - refactor literal lists and functions into one big static table
   - function invariant checking should be done in the interpreter, not in Python functions
 - add evaluated lists (?)
@@ -226,11 +226,13 @@ AWFUL's features include:
   - implement full grammar using some kind of parser library (?)
 - implement graphics processing, implement game of life for fun
 - add multi threading capabilities?
+- interpret alias only once
 
 
 ## Defined types ##
 
 ### Interpreter internals ###
+- -2: open file
 - -1: codepoint
 - 0: `nil`
 - 1: bool

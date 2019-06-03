@@ -6,28 +6,6 @@ include strings
 include types
 
 
-## Division ##
-def /  2
-  // popnos
-end  1
-assert
-  5/3
-from
-  5. 3. /
-end
-
-
-## Modulo ##
-def %  2
-  // pop
-end  1
-assert
-  2
-from
-  5 3 %
-end
-
-
 ## Floor ##
 def floor  1
   dup 1 % -  # remove decimal part
@@ -212,7 +190,7 @@ def sqrt  2                 # number decimals
     :1.41
   from
     "14" up root
-    1 up dotpos    # 1.4
+    1 up dotpos                 # 1.4
     2 up value
     nil finddigit root build-number
   end
@@ -235,4 +213,21 @@ from
   101 3 sqrt as-number
 end
 
-## Compute pi constant ##
+
+## Compute pi constant using the Nilakantha series ##
+def compute-pi  0
+  3 as result
+
+  def compute-pi'  1            # receives 3, 7
+    as i
+    result
+    4 i     i 1 + i 2 + * * / +
+    4 i 2 + i 3 + i 4 + * * / -
+    up result
+  end 0
+
+  2 1006 4 &compute-pi' for
+  result
+end  1
+
+compute-pi as pi
