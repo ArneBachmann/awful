@@ -10,23 +10,22 @@ The result is a fun little programming language runtime that allows to write sta
 ```
 # Fibonacci implementation #
 
-include basics
-include console
 include stack
 
 
 ## Compute the Fibonacci numbers iteratively ##
 def fib  1
-  dup is-neg if error "fib requires a positive interger"
+  dup is-neg if (
+    error "fib requires a positive interger"
+  )
   dup 1 le if break       # for 0 and 1, just return this number
 
   def fib'  3             # q p n
     dup 1 le              # q p n n<=1
-    if break pop pop      # q
+      if break pop2       # q
     3tor over             # n q p q
     +                     # n q p+q
-    swap                  # n p+q q
-    rot3                  # p+q q n
+    swapover              # p+q q n
     1 -                   # p+q q n-1
     fib'                  # tail recursion
   end  1
@@ -43,8 +42,6 @@ assert 0 from 0 fib end
 assert 1 from 1 fib end
 assert 8 from 6 fib end
 assert 6765 from 20 fib end
-
-"Enter a number: " input
 ```
 
 AWFUL's features include:
