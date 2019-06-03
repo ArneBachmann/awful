@@ -5,28 +5,27 @@
 This project implements an interpreter for the stack-based programming language *AWFUL*, written in Python.
 AWFUL takes inspiration from many programming language designs and concepts, but is not really informed by them and combines them in the most awful way (e.g. naming of stack operations may differ from Forth).
 
-The result is a fun little programming language runtime that allows to write stack-based programs with a reduced set of keywords and language concepts. Here is an example:
+The result is a fun little programming language runtime that allows to write stack-based programs with a reduced set of keywords and language concepts. Here is an example with extensive stack operations:
 
 ```
 # Fibonacci implementation #
 
-include basics
-include console
 include stack
 
 
 ## Compute the Fibonacci numbers iteratively ##
 def fib  1
-  dup is-neg if error "fib requires a positive interger"
+  dup is-neg if (
+    error "fib requires a positive interger"
+  )
   dup 1 le if break       # for 0 and 1, just return this number
 
   def fib'  3             # q p n
     dup 1 le              # q p n n<=1
-    if break pop pop      # q
+      if break pop2       # q
     3tor over             # n q p q
     +                     # n q p+q
-    swap                  # n p+q q
-    rot3                  # p+q q n
+    swapover              # p+q q n
     1 -                   # p+q q n-1
     fib'                  # tail recursion
   end  1
@@ -43,8 +42,6 @@ assert 0 from 0 fib end
 assert 1 from 1 fib end
 assert 8 from 6 fib end
 assert 6765 from 20 fib end
-
-"Enter a number: " input
 ```
 
 AWFUL's features include:
@@ -255,17 +252,27 @@ You can skip running all self-tests, pre- and post-conditions and invariant chec
 
 ```
 > time python3 awfl.py fibonacci.awfl
-real 0m38.142s
-user  0m38.125s
-sys 0m0.017s
+real  0m39.041s
+user  0m39.011s
+sys   0m0.024s
 
-> time python3 -O fibonacci.py
-real  0m35.259s
-user  0m35.246s
-sys 0m0.012s
+> time python3 -OO awfl.py fibonacci.awfl
+real  0m37.534s
+user  0m37.516s
+sys   0m0.012s
 
 > time pypy3 awfl.py fibonacci.awfl
-real  0m12.626s
-user  0m12.571s
-sys 0m0.052s
+real  0m12.191s
+user  0m12.130s
+sys   0m0.040s
+
+> time python3 fibonacci.py
+real  0m0.043s
+user  0m0.035s
+sys   0m0.008s
+
+> time pypy3 fibonacci.py
+real  0m0.083s
+user  0m0.067s
+sys   0m0.016s
 ```
