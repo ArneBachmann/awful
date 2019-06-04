@@ -1,4 +1,5 @@
-  # Stack operations #
+# Stack operations #
+### trip, swap, drop, popnos, pop2, pop3, over, popn, rot, tor, rot3, 3tor, rotn, shuffle, swapover, times, 2dup, cond
 
 include basics
 
@@ -184,18 +185,6 @@ assert
   2 3 2 3
 from
   2 3 2dup
-end
-
-
-## Test function references on the stack ##
-assert
-  3
-from
-  def use_drop  2
-    1 .f apply  # need apply because variable f contains a function reference
-  end  1
-  &drop as f    # reference copy
-  2 3 use_drop
 end
 
 

@@ -1,0 +1,7 @@
+# I/O modules #
+### This module includes everything related to I/O
+
+include console
+include files
+include streams
+include strings

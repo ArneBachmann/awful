@@ -1,6 +1,7 @@
 # List operations #
-### list-create, list-len, list-get, list-copy, list-concat, list-split-at, list-max, list-min, list-sum, list-find, list-append, list-swap-last, list-reverse, reverse, range, filter
+### list-create, list-len, list-get, list-copy, list-concat, list-split-at, list-append, list-swap-last, reduce, map, filter, list-max, list-min, list-sum, list-find, list-reverse, list-from-stack, list-to-stack, reverse, range
 
+include basicmaths
 include basics
 include loops
 
@@ -178,6 +179,126 @@ end
 #end
 
 
+## Append one element to a list ##
+```
+def list-append  2              # list value
+  as value
+  as list'
+  value list' list'.num push      # store new value
+  list'.num 1 + swap :num pushi  # increase length
+end  1                          # list
+```
+assert
+  [ 1 2 False 3 ]
+from
+  [ 1 2 False ] 3 list-append
+end
+
+
+## Remove one element ##
+```
+def list-swap-last  2   # list index
+  as index              # list   index -> index
+  :num pull 1 -         # list num-1
+  as last               # list   last -> num-1
+  last pull             # list last
+  swap index push       # list (updated)
+  last swap :num pushi  # list (updated)
+  list-crop'            # remove unused entry
+end  1                  # list
+```
+assert
+  [ 3 2 ]
+from
+  [ 1 2 3 ] 0 list-swap-last
+end
+
+
+## Reduce over a list ##
+```
+def reduce  3         # list initial func(2->1)
+  as func
+  as last
+  :num pull as num    # elements in l
+  as l
+
+  def each  1     # i
+    l swap pull   # l elem-i
+    popnos        # elem-i
+    last          # elem-i last
+    swap          # last elem-i
+    ...func apply    # result
+    up ...last    # -
+  end  0
+
+  0 num 1 &each for
+  last
+end  1
+assert
+  6
+from
+  def add 2 + end 1
+  [ 1 2 3 ] 0 &add reduce
+end
+```
+
+
+## Map over a list ##
+```
+def map  2          # list func
+  as func           #   func -> func
+  :num pull as num  #   num -> num
+  as l              #   l -> l
+
+  def each  1       # i
+    as i            #   i -> i
+    l i pull        # l elem-i
+    popnos          # elem-i
+    func apply      # l func(elem-i)
+    l i push        # l(updated)
+    up ...l         #   l -> l
+  end  0            # -
+
+  0 num 1 &each for l
+end  1
+```
+assert
+  [ 0 2 3 4 ]
+from
+  def times2  1
+    2 *
+  end  1
+  [ 0 1 1.5 2 ] &times2 map
+end
+
+
+## Filter a list ##
+def filter  2       # list predicate
+  as pred           # elem->bool
+  :num pull as num  # num->list.num
+  as list'
+  [ ] as result
+
+  def step  1
+    list' swap pull popnos dup
+    pred apply unless break pop
+    result swap list-append up result
+  end  0
+
+  0 num 1 &step for
+  result
+end  1
+assert
+  [ 1 3 5 7 9 ]
+from
+  def odd  1
+    2 % 1 eq
+  end  1
+  assert True False True False from 1 odd 2 odd -1 odd 0 odd end
+  [ 0 1 2 3 4 5 6 7 8 9 ] &odd filter     # 0 10 1 range
+end
+
+
 ## Determine the highest element from a list of numbers ##
 ```
 def list-minmax'  2   # list pair-func
@@ -290,47 +411,12 @@ from
 end
 
 
-## Append one element to a list ##
-```
-def list-append  2              # list value
-  as value
-  as list'
-  value list' list'.num push      # store new value
-  list'.num 1 + swap :num pushi  # increase length
-end  1                          # list
-```
-assert
-  [ 1 2 False 3 ]
-from
-  [ 1 2 False ] 3 list-append
-end
-
-
-## Remove one element ##
-```
-def list-swap-last  2   # list index
-  as index              # list   index -> index
-  :num pull 1 -         # list num-1
-  as last               # list   last -> num-1
-  last pull             # list last
-  swap index push       # list (updated)
-  last swap :num pushi  # list (updated)
-  list-crop'            # remove unused entry
-end  1                  # list
-```
-assert
-  [ 3 2 ]
-from
-  [ 1 2 3 ] 0 list-swap-last
-end
-
-
 ## Reverse a list ##
-alias floor' dup 1 % - end
 ```
 def list-reverse  1
   list-len as num
   as list'
+  def floor'  1 dup 1 % - end  1
 
   def swap2  1
     as i
@@ -440,31 +526,4 @@ assert
   [ 2 4 6 ]
 from
   2 8 2 range     # TODO 2 7 2 range doesn't work currently, fix for loop first
-end
-
-
-## Filter a list ##
-def filter  2       # list predicate
-  as pred           # elem->bool
-  :num pull as num  # num->list.num
-  as list'
-  [ ] as result
-
-  def step  1
-    list' swap pull popnos dup
-    pred apply unless break pop
-    result swap list-append up result
-  end  0
-
-  0 num 1 &step for
-  result
-end  1
-assert
-  [ 1 3 5 7 9 ]
-from
-  def odd  1
-    2 % 1 eq
-  end  1
-  assert True False True False from 1 odd 2 odd -1 odd 0 odd end
-  [ 0 1 2 3 4 5 6 7 8 9 ] &odd filter     # 0 10 1 range
 end
