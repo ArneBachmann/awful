@@ -1,0 +1,12 @@
+# Standard library meta module #
+### This module includes everything that is fast to import
+
+include basicmaths
+include basics
+include lists
+include loops
+include maps
+include selftests
+include sets
+include stack
+include types

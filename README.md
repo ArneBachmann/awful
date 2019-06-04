@@ -138,71 +138,27 @@ AWFUL's features include:
 
 
 ## Standard library dependency hierarchy ##
-- basic
-  - selftests
-- console
+- io
+  - console
   - streams
-    - lists
-      - loops
-        - stack
-          - basics
-            - selftests
   - strings
-    - lists
-      - loops
-        - stack
-          - basics
-            - selftests
-- lists
-  - loops
-    - stack
-      - basics
-        - selftests
-- loops
-  - stack
-    - basics
-      - selftests
-- maps
-  - lists
-    - loops
-      - stack
-        - basics
-          - selftests
-- maths
-  - loops ...
-  - stack
-    - basics
-      - selftests
-- selftests
-- sets
-  - lists
-    - loops
-      - stack
-        - basics
-          - selftests
-- stack
+- standard
+  - basicmaths
   - basics
-    - selftests
-- streams
+  - files
   - lists
-    - loops
-      - stack
-        - basics
-          - selftests
-  - types
-    - stack
-      - basics
-        - selftests
-- strings
-  - lists
-    - loops
-      - stack
-        - basics
-          - selftests
-- types
+  - loops
+  - maps
+  - selftests
+  - sets
   - stack
-    - basics
-      - selftests
+  - types
+- maths
+  - basicmaths
+  - lists
+  - stack
+  - strings
+  - types
 
 
 ## To do ##

@@ -1,5 +1,5 @@
 # Control structures #
-#   for, reduce, map
+#   for, forbreak, while
 
 include stack
 
@@ -121,62 +121,4 @@ from
   end  0
   &testpred &testfunc while
   a
-end
-
-
-## Reduce over a list ##
-```
-def reduce  3         # list initial func(2->1)
-  as func
-  as last
-  :num pull as num    # elements in l
-  as l
-
-  def each  1     # i
-    l swap pull   # l elem-i
-    popnos        # elem-i
-    last          # elem-i last
-    swap          # last elem-i
-    ...func apply    # result
-    up ...last    # -
-  end  0
-
-  0 num 1 &each for
-  last
-end  1
-assert
-  6
-from
-  def add 2 + end 1
-  [ 1 2 3 ] 0 &add reduce
-end
-```
-
-
-## Map over a list ##
-```
-def map  2          # list func
-  as func           #   func -> func
-  :num pull as num  #   num -> num
-  as l              #   l -> l
-
-  def each  1       # i
-    as i            #   i -> i
-    l i pull        # l elem-i
-    popnos          # elem-i
-    func apply      # l func(elem-i)
-    l i push        # l(updated)
-    up ...l         #   l -> l
-  end  0            # -
-
-  0 num 1 &each for l
-end  1
-```
-assert
-  [ 0 2 3 4 ]
-from
-  def times2  1
-    2 *
-  end  1
-  [ 0 1 1.5 2 ] &times2 map
 end

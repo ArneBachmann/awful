@@ -91,3 +91,20 @@ from
   ( 1 2 ) False if ( 3 + + )
   ( 2 - )
 end
+
+
+## Test function references on the stack ##
+assert
+  3
+from
+  def drop'  2
+    1 nib pop
+  end  1
+  assert 2 from 3 2 drop' end
+
+  def use_drop  2
+    .f apply  # need apply because variable f contains a function reference
+  end  1
+  &drop' as f    # reference copy
+  2 3 use_drop
+end

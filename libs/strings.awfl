@@ -1,6 +1,7 @@
 # String operations #
 ### string-from-list, string-concat, string-split-at, string-len, string-insert-at
 
+include basicmaths
 include lists
 
 

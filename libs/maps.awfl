@@ -1,6 +1,7 @@
 # Associative mappings #
-### map-create, map-set, map-get, map-contains
+### map-create, map-set, map-contains, map-get
 
+include basicmaths
 include lists
 
 

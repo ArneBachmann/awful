@@ -1,7 +1,9 @@
 # Set operations #
-### set-create, set-add, set-remove, set-union, set-intersect, set-difference
+### set-create, set-as-list, set-add, set-from-list, set-remove, set-union, set-intersect, set-difference
 
+include basicmaths
 include lists
+include loops
 
 
 ## Create an empty set ##
@@ -36,6 +38,27 @@ from
   1 set-add
   :x set-add
   set-as-list
+end
+
+
+## Convert from list ##
+def set-from-list  1
+  :num pull as num
+  as list'
+  set-create as result
+
+  def insert  1
+    list' swap pull popnos
+    result swap set-add up result
+  end  0
+
+  0 num 1 &insert for
+  result
+end  1
+assert
+  [ 1 2 3 ]
+from
+  [ 1 2 3 2 1 ] set-from-list set-as-list
 end
 
 
