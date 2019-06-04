@@ -45,6 +45,9 @@ ignore on
 include console
 include types
 
+include console
+include types
+
 "Enter a number: " input as-number as f
 f 0 lt if error "Enter a positive integer"
 f fib as result
