@@ -27,7 +27,7 @@ end  2
 ## Remove n-th element from stack ##
 def drop 2
   # remove element below TOS
-  dup is-zero if error "drop argument must be a positive integer"
+  dup 1 lt if error "drop argument must be a positive integer"
   nib pop
 end  0
   assert 1 2 0 "ERROR" from 1 2 0 drop end  # no-op

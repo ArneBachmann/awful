@@ -5,11 +5,20 @@
 assert from 1 pop end
 
 
+## Test strings ##
+assert "Hello" from "Hello" end
+assert "Hello world!" from "Hello world!" end
+assert "Hello \"world\"!" from "Hello \"world\"!" end
+assert " Hello" from " Hello" end
+
+
 ## Test comparisons ##
 assert True      from nil nil eq end
 assert False     from nil 0 eq end
 assert 2  1      from 1 2 1 nib end
 assert 1 :x 2 3  from 1 2 3 :x 2 bin end  # push :x two positions to down the stack
+assert ERROR      from 1 [ 1 ] le end
+assert ERROR     from 1 [ 1 ] ge end
 
 
 ## Test binary functions ##

@@ -25,7 +25,7 @@ STREAMS = STDIN, STDOUT, STDERR = '_stdin', '_stdout', '_stderr'
 INTERRUPTS = BREAK, ERROR = 'break', 'error'
 TESTING = ASSERT, FROM = 'assert', 'from'
 INTERACTIVE = DEBUG, IGNORE, ON, OFF, HERE = 'debug', 'ignore', 'on', 'off', 'here'
-SOURCE = LIBS, INCLUDE = 'libs', 'include'
+SOURCE = LIBS, INCLUDE, WORDS = 'libs', 'include', 'words'
 RESERVED = set(reduce(lambda a, b: a + (list(b) if isinstance(b, tuple) else [b]), (NIL, SYMBOLS, NUMERICS, GROUPING, LISTS, TRUTH,
     STACKOPS, FUNCTIONS, CONDITIONAL, ORDERED, VARIABLES, STRUCTURES, FILES, STREAMS, INTERRUPTS, TESTING, INTERACTIVE, SOURCE), []))
 DEFS = {ALIAS: END, ASSERT: FROM, DEF: END, FROM: END, GROUP: ENDGROUP, NEWLIST: ENDLIST, ERROR: EOL, BREAK: EOL}  # tokens that open and close a sublist in the token string
@@ -36,6 +36,7 @@ INDENT_N = 2  # spaces per indentation step
 INDENT = SPACE * INDENT_N
 TYPE, NUM, NONE = 'type', 'num', None  # reserved fields in internal data representation
 TYPES = FILE, CODE, NILT, BOOL, NUMBER, STRING, LIST, FUNC = -2, -1, 0, 1, 2, 3, 4, 5  # of internal presentation dict[TYPE]
+# 6 = maps, 7 = sets
 
 
 class ParsingError(Exception): pass
@@ -107,9 +108,9 @@ def makeList(lizt):
       Dicts are recognized as already converted contents (e.g. from fromLiteral()).
 
   >>> orderedDictRepresentation(makeList([1, 3, 5]))
-  [('0', 1), ('1', 3), ('2', 5), ('num', 3), ('type', 4)]
+  "[('0', 1), ('1', 3), ('2', 5), ('num', 3), ('type', 4)]"
   >>> orderedDictRepresentation(makeList([1, [], [3, 5]]))
-  [('0', 1), ('1', [('num', 0), ('type', 4)]), ('2', [('0', 3), ('1', 5), ('num', 2), ('type', 4)]), ('num', 3), ('type', 4)]
+  "[('0', 1), ('1', [('num', 0), ('type', 4)]), ('2', [('0', 3), ('1', 5), ('num', 2), ('type', 4)]), ('num', 3), ('type', 4)]"
   '''
   assert isinstance(lizt, list), "makeList requires a list argument, but got %r" % lizt
   assert all([isinstance(_, (int, dict, list)) for _ in lizt]), "makeList requires a list of integers or nested lists, but got %r" % lizt
@@ -121,7 +122,7 @@ def makeString(string):
   ''' Convert a literal string into internal list/map representation.
 
   >>> orderedDictRepresentation(makeString("abc"))
-  [('0', 97), ('1', 98), ('2', 99), ('num', 3), ('type', 3)]
+  "[('0', 97), ('1', 98), ('2', 99), ('num', 3), ('type', 3)]"
   '''
   assert isinstance(string, str)
   dikt = makeList([ord(string[i]) for i in range(len(string))])
@@ -131,7 +132,7 @@ def makeString(string):
 def makeNumber(n):
   ''' Convert number to internal representation.
   >>> orderedDictRepresentation(makeNumber(fractions.Fraction("45/23")))
-  [('0', 52), ('1', 53), ('2', 47), ('3', 50), ('4', 51), ('num', 5), ('type', 2)]
+  "[('0', 52), ('1', 53), ('2', 47), ('3', 50), ('4', 51), ('num', 5), ('type', 2)]"
   '''
   if not isinstance(n, (int, fractions.Fraction, decimal.Decimal)): raise RuntimeViolation("Wrong number type %s: %r" % (type(n), n))
   dikt = makeString(str(n))
@@ -141,7 +142,7 @@ def makeNumber(n):
 def makeReference(name):
   ''' Create a function reference entry.
   >>> orderedDictRepresentation(makeReference("my"))
-  [('0', 109), ('1', 121), ('num', 2), ('type', 5)]
+  "[('0', 109), ('1', 121), ('num', 2), ('type', 5)]"
   '''
   assert isinstance(name, str)
   dikt = makeString(name)
@@ -233,12 +234,12 @@ def fromValue(value): tipe = getType(value); return repr(value) if tipe not in T
 
 
 ## Functions to output the interpreter state
-def orderedDictRepresentation(simple_or_dikt):
+def orderedDictRepresentation(simple_or_dikt, convert = str):
   ''' Reliable (ordered) representation for test cases and comparison operators.
-  >>> print(orderedDictRepresentation({"a": 1, '1': 97, "_": {'3': 3}}))
-  [('1', 97), ('_', [('3', 3)]), ('a', 1)]
+  >>> orderedDictRepresentation({"a": 1, '1': 97, "_": {'3': 3}})
+  "[('1', 97), ('_', [('3', 3)]), ('a', 1)]"
   '''
-  return [(k, orderedDictRepresentation(v)) for k, v in sorted(simple_or_dikt.items())] if isinstance(simple_or_dikt, dict) else simple_or_dikt
+  return convert([(k, orderedDictRepresentation(v, convert = lambda a: a)) for k, v in sorted(simple_or_dikt.items())] if isinstance(simple_or_dikt, dict) else simple_or_dikt)
 
 def internalAsString(e, indent = 0, prefix = ""):
   ''' Create printable representation of a data type.
@@ -316,11 +317,11 @@ def variableTraversal(inDict, key):
 def storeVariable(inDict, key, value, update = False, original = None):
   ''' Store or update a potentially nested variable.
       inDict: namespace or variable with nested structures
-  >>> ns = {}; storeVariable(ns, "a.b", {"type": 3, "0": 97, "num": 1}, original = "..a.b"); print(orderedDictRepresentation(ns))
-  [('a', [('b', [('0', 97), ('num', 1), ('type', 3)])])]
-  >>> storeVariable(ns, "a.b", {"type": 3, "0": 98, "num": 1}, update = True); print(orderedDictRepresentation(ns))
-  [('a', [('b', [('0', 98), ('num', 1), ('type', 3)])])]
-  >>> ns = {}; storeVariable(ns, "a.b", {"type": 3, "0": 97, "num": 1}, update = True); print(orderedDictRepresentation(ns))
+  >>> ns = {}; storeVariable(ns, "a.b", {"type": 3, "0": 97, "num": 1}, original = "..a.b"); orderedDictRepresentation(ns)
+  "[('a', [('b', [('0', 97), ('num', 1), ('type', 3)])])]"
+  >>> storeVariable(ns, "a.b", {"type": 3, "0": 98, "num": 1}, update = True); orderedDictRepresentation(ns)
+  "[('a', [('b', [('0', 98), ('num', 1), ('type', 3)])])]"
+  >>> ns = {}; storeVariable(ns, "a.b", {"type": 3, "0": 97, "num": 1}, update = True); orderedDictRepresentation(ns)
   Traceback (most recent call last):
   ...
   RuntimeViolation: variable element 'a' not defined for 'a.b'
@@ -382,17 +383,21 @@ def evaluate(tokens, namespaces, stack):
 
   if debug:
     if debug == "this": debug = False  # reset flag after printout
+    if '--words' in sys.argv: print(namespaceStr(namespaces))
     print("STACK " + stackStr(stack))
-    if debug == "all": print(namespaceStr(namespaces))
-    if '--items' in sys.argv: print("TOKEN %s" % ({EOL: "EOL", TAIL_RECURSION: "TAILR"}.get(token, repr(token))))
+    print("TOKEN %s" % ({EOL: "EOL", TAIL_RECURSION: "TAILR"}.get(token, repr(token))))
 
   if token[0] == COMMENT: return  # comments are part of the token stream unless in optimized mode
   if token == NIL: stack.append(fromLiteral(token)); return  # store nil singleton
   if token in TRUTH: stack.append(fromLiteral(token)); return  # boolean found
   if token.startswith(REF): stack.append(fromLiteral(token)); return  # put function reference on TOS (no namespace information contained!)
   if token.startswith(SYMBOL): stack.append(fromLiteral(token)); return  # put one-token symbol on the stack
-  if token[0] == QUOTE: stack.append(fromLiteral(token)); return # string found
+  if token[0] == QUOTE: stack.append(fromLiteral(token)); return  # string found
   if token in aliases: tokens.insertAlias(aliases[token]); return  # alias found
+
+  if token == WORDS:
+    import termwidth, textwrap
+    for namespace in namespaces: print("\n".join(textwrap.wrap(", ".join(sorted(namespace)), termwidth.getTermWidth().columns - 1, initial_indent = "- "))); return
 
   if token in (DUP, POP):
     if not stack: raise RuntimeViolation("%s requires one value on the stack" % token)
@@ -507,9 +512,9 @@ def evaluate(tokens, namespaces, stack):
     b, a = stack.pop(), stack.pop()
     c, d = getType(a), getType(b)
     A, B = fromValue(a), fromValue(b)
-#    if token == EQ and c != d: raise RuntimeViolation("%s on different data types %r %r" % (token, fromValue(a), fromValue(b)))
     if c is NILT and d is NILT: stack.append(makeBool(True)); return  # nil always equals nil
     if NILT in (c, d): stack.append(makeBool(False)); return  # nil never compares to any other value
+    if c != d: raise RuntimeViolation("%s on different data types %r %r" % (token, fromValue(a), fromValue(b)))
 
     if token == EQ:
       if c in (BOOL, NUMBER, STRING): stack.append(makeBool(A == B if c == d else str(A) == str(B)))
@@ -571,6 +576,7 @@ def evaluate(tokens, namespaces, stack):
             if error is TAIL_RECURSION:
               if debug: print("TAILR")
               continue  # run function again
+            if error: print("ERROR in %s: %r" % (".".join(callstack), error))
             break
         except AssertionError as E: error = "%s: %r" % (".".join(callstack), str(E))  # affects unit test or pre-/post-conditions
         finally: namespaces.pop(); callstack.pop()
@@ -598,12 +604,12 @@ def evaluate(tokens, namespaces, stack):
     if error: exstack.append(makeString("ERROR " + error))
     if debug: print("STEXP " + stackStr(exstack))
     try: assert len(isstack) == len(exstack) and all([(
-        str(fromValue(i)).startswith("ERROR") and str(fromValue(e)).startswith("ERROR"))
+        str(fromValue(i)).startswith("ERROR") and str(fromValue(e)).startswith("ERROR"))\
         or str(fromValue(i)) == str(fromValue(e))
-      for i, e in zip(isstack, exstack)]),\
+        for i, e in zip(isstack, exstack)]),\
         "SHOULD %s BUT WAS %s for %s" % (stackStr(exstack), stackStr(isstack), formatCodeBlock(test))
-    except Exception as E:
-      try: print("Error %r in %r" % (E, test) + "\nSTWAS " + stackStr(isstack) + " = %r" % isstack)
+    except (AssertionError, Exception) as E:
+      try: print("FAILD %r in %r" % (E, test) + "\nSTWAS " + stackStr(isstack) + " = %r" % isstack)
       except: print("ERROR %r" % test)
       if '--interactive' in sys.argv: import pdb; pdb.set_trace()
     return
@@ -654,7 +660,7 @@ def fromLiteral(token):
   >>> debug = True; fromLiteral('nil')
   {'type': 0}
   >>> debug = True; orderedDictRepresentation(fromLiteral(['1', 'True']))
-  [('0', [('0', 49), ('num', 1), ('type', 2)]), ('1', [('0', -1), ('type', 1)]), ('num', 2), ('type', 4)]
+  "[('0', [('0', 49), ('num', 1), ('type', 2)]), ('1', [('0', -1), ('type', 1)]), ('num', 2), ('type', 4)]"
   '''
   if isinstance(token, list): return makeList([fromLiteral(_) for _ in token if _ != NEWLIST])  # ignore [ since following list always treated right
   if token == NIL: return {TYPE: NILT}  # create a new object on every call to allow subsequent modification (e.g. in map-create)
@@ -686,7 +692,7 @@ def parse(file, tokens, i = -1, until = END, comments = True):
       t.append(x)
     elif x[0] == QUOTE:
       quote = [x]
-      while (quote[-1].endswith(ESCAPE) or not quote[-1].endswith(QUOTE)): quote.append("\n" if tokens[i + 1][1] is EOL else (SPACE + tokens[i + 1][1])); i += 1
+      while quote == ['"'] or quote[-1].endswith(ESCAPE) or not quote[-1].endswith(QUOTE): quote.append("\n" if tokens[i + 1][1] is EOL else (SPACE + tokens[i + 1][1])); i += 1
       t.append("".join(quote).replace(ESCAPE, QUOTE))  # add including quotes but un-escape inner quotes
     elif x == INCLUDE:
       insert = include(tokens[i + 1][1], file, l)
@@ -738,7 +744,7 @@ def include(name, file, line):
   if name in includes: return []  # skip already included files
   if name + ".awfl" in os.listdir(standard): path = os.path.join(standard, name)
   elif os.path.exists(name.strip(".").replace(".", os.sep) + ".awfl"): path = name.strip(".").replace(".", os.sep)
-  else: raise ParsingError("include %r transitively missing from file %s on line %d" % (name, file, line))
+  else: raise ParsingError("include %r (transitively) missing from file %s on line %d" % (name, file, line))
   if debug: print("INCLD " + name)
   includes.add(name)  # allows mutually recursive including
   with open(path + ".awfl", "r", encoding = "utf-8") as fd: data = fd.read()  # slurp entire file
@@ -753,7 +759,6 @@ if __name__ == '__main__':
   if '--help' in sys.argv: print("""AWFUL V0.1  (C) 2019 Arne Bachmann
     --debug         show parser info and enable live debugger
     --tokens        show tokens at parsetime
-    --items         show processed items at runtime
     --optimize      remove most comments and safety checks from runtime
     --decimals <n>  set decimal computation precision
 

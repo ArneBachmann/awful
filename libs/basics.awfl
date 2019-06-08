@@ -66,6 +66,7 @@ alias lt ge not end
   assert 0    from 0 3 4 ge if 1 end
   assert 0    from 0 4 3 lt if 1 end
   assert 1    from   3 4 lt if 1 end
+  assert 0    from 0 0 0 lt if 1 end
 
 
 ### Exclusive bitwise or operation ###

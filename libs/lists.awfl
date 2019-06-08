@@ -195,7 +195,7 @@ from
 end
 
 
-## Remove one element ##
+## Remove one element replacing it with the one at the last, reducing the list size by one ##
 ```
 def list-swap-last  2   # list index
   as index              # list   index -> index
@@ -381,11 +381,14 @@ def list-find  2        # list value
   False as found
   list.num as num
 
-  def check  1                # i
-    as i                      #    i -> i, also pops the value
-    found if break            # already found, nothing to do
-    list i pull               # list elem-i
-    popnos                    # elem-i
+  def check  1                  # i
+    as i                        #    i -> i, also pops the value
+    found if break              # already found, nothing to do
+    list i pull                 # list elem-i
+    popnos                      # elem-i
+    :type pull                  # elem-i type-i
+    ...value :type pull popnos  # elem-i elem-type value-type
+    ne if break pop             # not the same type - assume different values as well
     ...value eq if break i up ...value True up ...found
   end  0
 
@@ -526,4 +529,28 @@ assert
   [ 2 4 6 ]
 from
   2 8 2 range     # TODO 2 7 2 range doesn't work currently, fix for loop first
+end
+
+
+## List sorting algorithm (the worst: selection sort) ##
+def list-sort  1
+  :num pull as num
+  as list'
+  list-create as result
+
+  def elem  1
+    pop                                 # index not needed
+    list' list-min as min'              # get next minimum
+    list' min' list-find as index pop   #
+    list' index list-swap-last up list'
+    result min' list-append up result
+  end  0
+
+  0 num 1 &elem for
+  result
+end  1
+assert
+  [ -4 0 1 2 3 5 ]
+from
+  [ 3 5 2 1 0 -4 ] list-sort
 end

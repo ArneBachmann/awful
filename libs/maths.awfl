@@ -161,7 +161,7 @@ def _compute-pi  1
   as iterations
   3 as result
 
-  def compute-pi'  1            # receives 3, 7
+  def compute-pi'  1            # receives 2, 6, ...
     as i
     result
     4 i     i 1 + i 2 + * * / +

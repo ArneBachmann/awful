@@ -48,10 +48,19 @@ end  1
 assert
   [ :x :y ]
   [ :y 13 ]
+  [ :x nil ]
+  [ nil :y ]
 from
   map-create
   :x :y map-set
   :y 13 map-set
+  :keys pull
+  swap
+  :values pull
+  popnos
+  map-create
+  :x nil map-set
+  nil :y map-set
   :keys pull
   swap
   :values pull
