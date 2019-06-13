@@ -102,5 +102,10 @@ environment:
     - PYTHON_VERSION: 3.6
       platform: x86
       image: ubuntu1804
+init:
+  - "set PY_VER=%PYTHON_VERSION:.=%"
+  - "set PYTHON=C:\\PYTHON%PY_VER%"
+  - "if %PLATFORM%==x64 (set PYTHON=%PYTHON%-x64)"
+  - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 skip_branch_with_pr: true
 version: "{build}.{branch}"
