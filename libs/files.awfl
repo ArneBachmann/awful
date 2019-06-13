@@ -1,15 +1,30 @@
 # File operations #
-
+### file-delete 1/1
 
 include streams
 include strings
+include system
 
 
-## Append to file: copy and add ##
+## Remove a file from the file system
+```
+def file-delete  1  # filename
+  as filename
+  "rm \"" filename string-concat
+  "\" || ( del \"" string-concat
+  filename string-concat
+  "\" > nul 2>nul )" string-concat
+  system-call
+end  1              # exit code
+```
+
+
+## TODO Append to file: copy to temp and then add contents
 
 ## Tests ##
 assert
   :abc
+  0
 from
   "abc.tmp" create
   :abc print
@@ -20,4 +35,6 @@ from
   slurp
   swap close
   popnos
+
+  "abc.tmp" file-delete
 end

@@ -1,5 +1,5 @@
 # Standard library meta module #
-### This module includes everything that is fast to import
+### This meta-module includes everything that is fast to import
 
 include basicmaths
 include basics

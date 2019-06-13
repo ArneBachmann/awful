@@ -1,0 +1,28 @@
+# Running shell commands
+### system-call 1/3, system-call-output 1/3, system-invoke 2/1
+
+include stack
+
+
+## Run a command on the OS shell, using the built-in `system` keyword
+```
+def system-call-output  1   # command
+  nil system
+end  3                      # stdout stderr exitcode
+```
+
+
+## Run a command on the OS shell, only returning the exit code
+```
+def system-invoke  2        # command input
+  system popnos popnos
+end  1                      # exitcode
+```
+
+
+## Run a command on the OS shell providing input to stdin
+```
+def system-call  1          # command
+  nil system-invoke
+end  1                      # exitcode
+```

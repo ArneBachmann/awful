@@ -1,12 +1,12 @@
 # List operations #
-### list-create, list-len, list-get, list-copy, list-concat, list-split-at, list-append, list-swap-last, reduce, map, filter, list-max, list-min, list-sum, list-find, list-reverse, list-from-stack, list-to-stack, reverse, range
+### list-create 0/1, list-len 1/1, list-get 2/1, list-copy, list-concat, list-split-at, list-append, list-swap-last, reduce, map, filter, list-max, list-min, list-sum, list-find, list-reverse, list-from-stack, list-to-stack, reverse, range
 
 include basicmaths
 include basics
 include loops
 
 
-## Create a list from n elements on the stack TODO ##
+## Create a list from n elements on the stack TODO
 ```
 def list-create  0
   4 0 ""                          # :type :num ""
@@ -25,26 +25,31 @@ from
 end
 
 
-## Determine length of list ##
+## Determine length of list
 def list-len  1
-  :num pull
-end  2
+  :num pull popnos
+end  1
 assert
   0 1 2
 from
-  [ ] list-len popnos
-  [ :x ] list-len popnos
-  [ 1 2 ] list-len popnos
+  [ ] list-len
+  [ :x ] list-len
+  [ 1 2 ] list-len
 end
 
 
-## Get an list element ##
+## Get an list element
 def list-get  2     # list index
-  pull              # list elem
-end  2
+  pull popnos       # elem
+end  1
+assert
+  :x
+from
+  [ 1 :x ] 1 list-get
+end
 
 
-## Helper function to copy elements between list structures ##
+## Helper function to copy elements between list structures
 ```
 def list-copy  5                  # source-list target-list from-index to-index count
   as count
@@ -73,7 +78,6 @@ def list-copy  5                  # source-list target-list from-index to-index 
   to count + lt if (              # if num is too low
     to count + swap :num pushi    # increase size WARN could leave out elements before "to"
   )
-
 end  1
 ```
 assert
@@ -83,7 +87,7 @@ from
 end
 
 
-## Concatenate two lists ##
+## Concatenate two lists
 ```
 def list-concat  2
   :num pull as len
@@ -112,7 +116,7 @@ from
 end
 
 
-## Crop a list to the internally specified number of elements by copying ##
+## Crop a list to the internally specified number of elements by copying
 ```
 def list-crop'  1             # l
   as l                        #     l -> l
@@ -127,7 +131,7 @@ from
 end
 
 
-## Split a list into two lists at a given index ##
+## Split a list into two lists at a given index
 ```
 def list-split-at  2  # list index
   as index            # l   index -> index
@@ -151,7 +155,7 @@ def list-split-at  2  # list index
   index l :num pushi      # update counter of original list
   list-crop'              # remove all elements over index
   num n :num pushi        # set counter of freshly created split list
-end  2
+end  2                  # list1 list2
 ```
 assert
   [ 1 2 ]
@@ -161,25 +165,25 @@ from
 end
 
 
-## Split a list at given substrings ##
+## Split a list at given substrings
 #def list-split  2  # list index
 #end  2             # prefix suffix
 
 
-## Join substrings with a separator ##
+## Join substrings with a separator
 #def list-join         list-of-lists separator
 #  as sep
 #end
 
 
-## List insertion ##
+## List insertion
 #def list-insert 3  # list insert index
 #  rot3 swap        # insert list index
 #  list-split       # insert prefix suffix
 #end
 
 
-## Append one element to a list ##
+## Append one element to a list
 ```
 def list-append  2              # list value
   as value
@@ -195,7 +199,7 @@ from
 end
 
 
-## Remove one element replacing it with the one at the last, reducing the list size by one ##
+## Remove one element replacing it with the one at the last, reducing the list size by one
 ```
 def list-swap-last  2   # list index
   as index              # list   index -> index
@@ -214,7 +218,7 @@ from
 end
 
 
-## Reduce over a list ##
+## Reduce over a list
 ```
 def reduce  3         # list initial func(2->1)
   as func
@@ -233,7 +237,7 @@ def reduce  3         # list initial func(2->1)
 
   0 num 1 &each for
   last
-end  1
+end  1            # result of reduction
 assert
   6
 from
@@ -243,7 +247,7 @@ end
 ```
 
 
-## Map over a list ##
+## Map over a list
 ```
 def map  2          # list func
   as func           #   func -> func
@@ -260,7 +264,7 @@ def map  2          # list func
   end  0            # -
 
   0 num 1 &each for l
-end  1
+end  1              # mapped list
 ```
 assert
   [ 0 2 3 4 ]
@@ -272,7 +276,7 @@ from
 end
 
 
-## Filter a list ##
+## Filter a list
 def filter  2       # list predicate
   as pred           # elem->bool
   :num pull as num  # num->list.num
@@ -287,7 +291,7 @@ def filter  2       # list predicate
 
   0 num 1 &step for
   result
-end  1
+end  1              # filtered list
 assert
   [ 1 3 5 7 9 ]
 from
@@ -299,7 +303,7 @@ from
 end
 
 
-## Determine the highest element from a list of numbers ##
+## Determine the highest element from a list of numbers
 ```
 def list-minmax'  2   # list pair-func
   as func             # takes last and next elements and returns new aggregate
@@ -317,7 +321,7 @@ def list-minmax'  2   # list pair-func
 end  1
 ```
 
-## Determine the highest element from a list of numbers ##
+## Determine the highest element from a list of numbers
 ```
 def list-max  1   # list
 
@@ -337,7 +341,7 @@ from
 end
 
 
-## Determine the lowest element from a list of numbers ##
+## Determine the lowest element from a list of numbers
 ```
 def list-min  1   # list
 
@@ -357,7 +361,7 @@ from
 end
 
 
-## Determine the sum of all numbers in a list ##
+## Determine the sum of all numbers in a list
 ```
 def list-sum  1   # list
   def add  2
@@ -373,7 +377,7 @@ from
 end
 
 
-## Find first occurrence of an element in the list ##
+## Find first occurrence of an element in the list
 ```
 def list-find  2        # list value
   as value              # what to search, and index found
@@ -414,10 +418,10 @@ from
 end
 
 
-## Reverse a list ##
+## Reverse a list
 ```
 def list-reverse  1
-  list-len as num
+  :num pull as num
   as list'
   def floor'  1 dup 1 % - end  1
 
@@ -451,7 +455,7 @@ from
 end
 
 
-## Consume elements from stack into one list. ##
+## Consume elements from stack into one list
 ```
 def list-from-stack  2    # elements num
   as n
@@ -476,14 +480,14 @@ from
 end
 
 
-## Expand list to stack ##
+## Expand list to stack
 def list-to-stack  1
   :num pull as n
   0 as i
 
   def push'  1            # list'
     i n eq if break pop   # break condition
-    i list-get            # list' elem-i
+    dup i list-get        # list' elem-i
     i 1 + up i            # i->i+1
     swap                  # elem-i list'
     push'
@@ -497,7 +501,7 @@ from
 end
 
 
-## Reverse order of elements on stack. TODO could also be implemented using only nib and bin ##
+## Reverse order of elements on stack. TODO could also be implemented using only nib and bin
 def reverse  2  # elements... num
   list-from-stack
   list-reverse
@@ -510,7 +514,7 @@ from
 end
 
 
-## Create a range of integers ##
+## Create a range of integers
 ```
 def range  3                # from to+1 step
   list-create as list'
@@ -532,7 +536,7 @@ from
 end
 
 
-## List sorting algorithm (the worst: selection sort) ##
+## List sorting algorithm (the worst: selection sort)
 def list-sort  1
   :num pull as num
   as list'

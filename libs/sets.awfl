@@ -29,7 +29,7 @@ def set-add  2          # set element
   as index
   if break set          # found: nothing to do
   set value list-append # add to set-"list"
-end  1
+end  1                  # set (updated)
 ```
 assert
   [ 1 :x ]
@@ -111,7 +111,7 @@ def set-union  2      # set1 set2
 
   0 scd.num 1 &add for
   set
-end  1
+end  1                # set (combined)
 ```
 assert
   [ 1 2 3 ]
@@ -146,7 +146,7 @@ def set-intersect  2      # set1 set2
 
   0 set.num 1 &check for
   new
-end  1
+end  1                # set (combined)
 ```
 assert
   [ 2 ]
@@ -175,7 +175,7 @@ def set-difference  2   # set1 set2
 
   0 scd.num 1 &check for
   set
-end  1
+end  1                        # set (combined)
 ```
 assert
   [ 1 ]

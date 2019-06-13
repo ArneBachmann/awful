@@ -1,7 +1,8 @@
 # I/O modules #
-### This module includes everything related to I/O
+### This meta-module includes everything related to I/O
 
 include console
 include files
 include streams
 include strings
+include system

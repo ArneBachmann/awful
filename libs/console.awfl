@@ -1,5 +1,5 @@
 # Console I/O #
-### input
+### input 1/1
 
 include streams  # so that users can rely on print being available as well
 include strings

@@ -8,7 +8,29 @@ include strings
 include types
 
 
-## Compute square root ##
+## Pseudo-random number generator (bytes)
+457239 as _random_seed
+nil as _random_value
+def random_byte  0
+  _random_value is-nil if ( _random_seed up _random_value )
+  _random_value 255 * 999999 / floor  # put new byte on stack
+
+  _random_value sqr   # r r^2
+  string-from-list    # r "r^2"
+  2 string-split-at   # r pref rest
+  popnos              # r rest
+  dup string-len      # r rest l
+  6 gt if ( 6 string-split-at pop )  # r 6chars
+  as-number up _random_value
+end  1
+assert
+  116 231 55
+from
+  random_byte random_byte random_byte
+end
+
+
+## Compute square root
 ```
 def sqrt  2                 # number decimals
   as digits
@@ -156,7 +178,7 @@ from
 end
 
 
-## Compute pi constant using the Nilakantha series ##
+## Compute pi constant using the Nilakantha series
 def _compute-pi  1
   as iterations
   3 as result

@@ -21,7 +21,7 @@ ORDERED = LE, GE = 'le', 'ge'
 VARIABLES = AS, UP, RM = 'as', 'up', 'rm'
 STRUCTURES = PULL, PUSH, PUSHI = 'pull', 'push', 'pushi'
 FILES = OPEN, CREATE, CLOSE, READ, WRITE = 'open', 'create', 'close', 'read', 'write'
-STREAMS = STDIN, STDOUT, STDERR = '_stdin', '_stdout', '_stderr'
+STREAMS = STDIN, STDOUT, STDERR, SYSTEM = '_stdin', '_stdout', '_stderr', 'system'
 INTERRUPTS = BREAK, ERROR = 'break', 'error'
 TESTING = ASSERT, FROM = 'assert', 'from'
 INTERACTIVE = DEBUG, IGNORE, ON, OFF, HERE = 'debug', 'ignore', 'on', 'off', 'here'
@@ -395,9 +395,22 @@ def evaluate(tokens, namespaces, stack):
   if token[0] == QUOTE: stack.append(fromLiteral(token)); return  # string found
   if token in aliases: tokens.insertAlias(aliases[token]); return  # alias found
 
-  if token == WORDS:
+  if token == WORDS:  # lists known words in REPL
     import termwidth, textwrap
     for namespace in namespaces: print("\n".join(textwrap.wrap(", ".join(sorted(namespace)), termwidth.getTermWidth().columns - 1, initial_indent = "- "))); return
+
+  if token == SYSTEM:  # "command" "input"|nil -> stdout, stderr, exitcode
+    if len(stack) < 2 or getType(stack[-1]) not in (NILT, STRING) or getType(stack[-2]) != STRING: raise RuntimeViolation("%s requires command-string and input-string or nil on the stack %r" % (token, stack[-2:]))
+    stream = stack.pop()
+    stream = getString(stream) if getType(stream) == STRING else None  # nil
+    command = getString(stack.pop())
+    import subprocess
+    process = subprocess.Popen(command, bufsize = -1, shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE, stdin = subprocess.PIPE, universal_newlines = True)
+    so, se = process.communicate(stream)
+    stack.append(makeString(so))
+    stack.append(makeString(se))
+    stack.append(makeNumber(process.returncode))
+    return
 
   if token in (DUP, POP):
     if not stack: raise RuntimeViolation("%s requires one value on the stack" % token)
