@@ -1,3 +1,5 @@
+build_script:
+  - cmd: "python -V"
 clone_script:
   - cmd: "git clone https://github.com/ArneBachmann/awful .\\"
 deploy: false
