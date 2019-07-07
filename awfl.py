@@ -357,13 +357,13 @@ def getVariable(inDict, key, remove = False):
 
 
 ## The main interpreter functions
-def interpret(tokens, namespaces, stack):
-  ''' Execute the entire token stream, returning an optional error message '''
+def interpret(tokens, namespaces, stack, breaker = None):
+  ''' Execute the entire token stream, returning an optional error message. '''
   if not isinstance(tokens, TokenIter): raise RuntimeViolation("interpret encountered illegal token %r" % type(tokens))
   try:
     while True:
       retval = evaluate(tokens, namespaces, stack)  # runs one operation that potentially consumes more than one token
-      if retval is BREAK: break # stop processing current block
+      if retval is BREAK: return breaker  # stop processing current block, and optionally return BREAK signal to outer caller (only != None inside a group)
       if retval: return retval  # only cases are BREAK, TAIL_RECURSION and error message (or None for OK)
   except StopIteration: pass  # end of token stream reached
 
@@ -372,7 +372,7 @@ def evaluate(tokens, namespaces, stack):
 
       returns None for ordinary execution
       returns a string with an error message when encountering an unknown symbol
-      returns BREAK to stop evaluating the current function
+      returns BREAK to stop evaluating the current function (and not only current group)
       returns TAIL_RECURSION, passed on to caller by interpret() to let inner() know that the execution needs to be repeated/continued
   '''
   global debug
@@ -431,7 +431,7 @@ def evaluate(tokens, namespaces, stack):
     return
 
   if token in (BREAK, ERROR):  # common logic
-    _next = next(tokens)
+    _next = next(tokens)  # optional clean-up operations on same line (or using a group definition in parentheses)
     if not isinstance(_next, list): raise RuntimeViolation("%s has body of wrong data type %r" % (token, _next))
 
     if token == BREAK:
@@ -594,7 +594,7 @@ def evaluate(tokens, namespaces, stack):
         except AssertionError as E: error = "%s: %r" % (".".join(callstack), str(E))  # affects unit test or pre-/post-conditions
         finally: namespaces.pop(); callstack.pop()
         if debug: print("ENDFN %r" % name); print("STACK " + stackStr(stack))
-        if error: return error
+        if error: return error  # or break
         if outputs != NIL:
           difference = len(stack) - (before - inputs + int(outputs))
           if difference != 0: raise RuntimeViolation("function %r stack size discrepancy %d" % (".".join(callstack + [name]), difference))
@@ -629,7 +629,7 @@ def evaluate(tokens, namespaces, stack):
 
   if token == DEBUG: name = next(tokens); debug = True if name == ON else (name if name != OFF else False); return
 
-  if token == GROUP: block = next(tokens); interpret(TokenIter(block), namespaces, stack); return
+  if token == GROUP: block = next(tokens); return interpret(TokenIter(block), namespaces, stack, breaker = BREAK)
 
   if token == NEWLIST: stack.append(fromLiteral(next(tokens))); return  # literal list
 

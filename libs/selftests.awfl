@@ -117,3 +117,24 @@ from
   &drop' as f    # reference copy
   2 3 use_drop
 end
+
+
+## Test blocks
+assert
+  2 4
+  5 6   # 7 and 9 should not occur!
+from
+  False if 1
+  True  if 2
+  False if (
+    3
+  )
+  True if ( 4 )
+  True if (
+    True if (
+      5 break 6
+      7
+    )
+    9
+  )
+end

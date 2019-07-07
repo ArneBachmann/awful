@@ -1,0 +1,40 @@
+# Multi-dimensional arrays
+## array-create 1/1, array-set 2/1
+
+include lists
+
+
+# Create an n-dimensional array
+```
+def array-create  2     # list of dimension sizes initial
+  as initial            # value to put into each cell
+  dup list-len          # list len
+  0 eq if (
+    pop initial break   # out of the group and the if block
+  )
+                        # list len
+  0 list-popi as dim    # rest  dim->dim0
+  as rest               #   rest->dim1..n
+
+  def dim-recurse  1    # i
+    pop                 # ignore list index
+    arr
+    rest initial array-create   # recurse into next dimension
+    list-append
+    up .arr
+  end  nil
+
+  list-create as arr
+  0 dim 1 &dim-recurse for
+  arr
+end  1
+```
+assert
+  nil
+  [ 1 ]
+  [ [ 2 2 ] [ 2 2 ] [ 2 2 ] ]
+from
+  [ ]   nil array-create
+  [ 1 ]   1 array-create
+  [ 3 2 ] 2 array-create
+end

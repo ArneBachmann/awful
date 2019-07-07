@@ -1,5 +1,5 @@
 # List operations #
-### list-create 0/1, list-len 1/1, list-get 2/1, list-copy, list-concat, list-split-at, list-append, list-swap-last, reduce, map, filter, list-max, list-min, list-sum, list-find, list-reverse, list-from-stack, list-to-stack, reverse, range
+### list-create 0/1, list-len 1/1, list-get 2/1, list-popi 2/2, list-pop 2/1, list-dropi 2/1, list-drop-last 1/1, list-drop-first 1/1, list-copy, list-concat, list-split-at, list-append, list-swap-last, reduce, map, filter, list-max, list-min, list-sum, list-find, list-reverse, list-from-stack, list-to-stack, reverse, range
 
 include basicmaths
 include basics
@@ -135,6 +135,8 @@ end
 ```
 def list-split-at  2  # list index
   as index            # l   index -> index
+  dup list-len
+  0 eq if error "Cannot split empty list"
   :num pull dup       # l l:num l:num
   as len              # l l:num   len -> l:num
   index - as num      # l   num -> num-index (to-move-count)
@@ -158,10 +160,13 @@ def list-split-at  2  # list index
 end  2                  # list1 list2
 ```
 assert
-  [ 1 2 ]
-  [ 3 4 ]
+  [ 1 2 ] [ 3 4 ]
+  [ :x ] [ ]
+  [ ] [ :x ]
 from
   [ 1 2 3 4 ] 2 list-split-at
+  [ :x ] 1 list-split-at
+  [ :x ] 0 list-split-at
 end
 
 
@@ -185,12 +190,12 @@ end
 
 ## Append one element to a list
 ```
-def list-append  2              # list value
+def list-append  2                # list value
   as value
   as list'
   value list' list'.num push      # store new value
-  list'.num 1 + swap :num pushi  # increase length
-end  1                          # list
+  list'.num 1 + swap :num pushi   # increase length
+end  1                            # list-with-value
 ```
 assert
   [ 1 2 False 3 ]
@@ -215,6 +220,109 @@ assert
   [ 3 2 ]
 from
   [ 1 2 3 ] 0 list-swap-last
+end
+
+
+## Pop one element from the list
+```
+def list-popi  2    # list index
+  list-split-at     # prefix list-rest
+  1 list-split-at   # prefix [elem] suffix
+  swap              # prefix suffix [elem]
+  0 list-get        # prefix suffix elem
+  as elem           # prefix suffix
+  list-concat elem  # list elem
+end  2              # list elem
+```
+assert
+  [ 1 2 4 ] 3
+  [ ] :a
+  [ :a ] [ ] :ERROR # because the empty right-hand string cannot extract an element
+from
+  [ 1 2 3 4 ] 2 list-popi
+  [ :a ]      0 list-popi
+  [ :a ]      1 list-popi
+end
+
+
+## Pop last element from the list
+```
+def list-pop  1     # list
+  :num pull 1 -
+  list-popi
+end  2              # list elem
+```
+assert
+  [ 1 2 ] 3
+from
+  [ 1 2 3 ] list-pop
+end
+
+
+## Drop one element from the list
+```
+def list-dropi  2     # list index
+  list-popi pop
+end  1
+```
+assert
+  [ 1 2 4 ]
+  [ 2 3 4 ]
+from
+  [ 1 2 3 4 ] 2 list-dropi
+  [ 1 2 3 4 ] 0 list-dropi
+end
+
+
+## Drop the last element from the list
+```
+def list-drop-last  1  # list
+  list-pop pop
+end  1              # list
+```
+assert
+  [ 1 2 ]
+from
+  [ 1 2 3 ] list-drop-last
+end
+
+
+## Drop the first element from the list
+```
+def list-drop-first  1  # list
+  0 list-dropi
+end  1
+```
+assert
+  [ 2 3 ]
+from
+  [ 1 2 3 ] list-drop-first
+end
+
+
+## Extract head from list
+```
+def list-head  1  # list
+  0 list-popi popnos
+end  1            # list head
+```
+assert
+  1
+from
+  [ 1 2 3 ] list-head
+end
+
+
+## Extract tail from list
+```
+def list-tail  1  # list-rest
+  0 list-popi pop
+end  1
+```
+assert
+  [ 2 3 ]
+from
+  [ 1 2 3 ] list-tail
 end
 
 
@@ -501,7 +609,7 @@ from
 end
 
 
-## Reverse order of elements on stack. TODO could also be implemented using only nib and bin
+## Reverse order of elements on stack. TODO could also be implemented using only nib and bin TODO fits best in stack.awfl
 def reverse  2  # elements... num
   list-from-stack
   list-reverse
