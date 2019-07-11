@@ -25,23 +25,27 @@ end  2
 
 
 ## Remove n-th element from stack ##
+```
 def drop 2
   # remove element below TOS
   dup 1 lt if error "drop argument must be a positive integer"
   nib pop
 end  0
+```
   assert 1 2 0 "ERROR" from 1 2 0 drop end  # no-op
   assert "b" from :a :b 1 drop end          # remove NOS
   assert "b" "c" from :a :b :c 2 drop end   # remove NOS
 
 
 ## Pop NOS ##
+```
 def popnos  2
-  1 drop
-end  1
-def popnos'  2
   swap pop
 end  1
+def popnos'  2
+  1 drop
+end  1
+```
   assert 1 2 popnos' from 1 2 popnos end
 
 def pop2  2
@@ -72,9 +76,9 @@ def popn  2     # [a b m] n
     1 -         # n-1
     dup 0 ne    # n-1 T/F
     if popn'    # loop
-  end  nil
+  end  ?
   popn' pop   # [a b m-n]
-end  nil
+end  ?
   assert 1 from 1 2 3 2 popn end
 
 
@@ -170,10 +174,10 @@ def times  2
     dup is-zero   # a a n-1 0/1  a a a n-1 0/1
     if break pop  # end condition
     times'        # loop
-  end  nil
+  end  ?
   1 -             # prepare counter
   times'
-end  nil
+end  ?
   assert :a :a :a :a from :a 4 times end
 
 

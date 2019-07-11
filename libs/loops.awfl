@@ -1,14 +1,46 @@
-# Control structures #
-#   for, forbreak, while
+# Control structures
+### for 3/nil, forbreak 4/1, foreach 2/nil, for-range 2/nil, while 2/0
 
 include stack
 
 
-## Numbered "for"-like loop function ##
+## Simplified counting loop
+```
+def for-range  2
+  as func
+  as count_to
+
+  def next  0
+    count count_to eq if break  # break criterion
+    count dup inc1 up .count    # increment counter
+    .func apply                 # call function
+    next                        # recurse
+  end  ?
+
+  0 as count
+  next    # start loop with zero
+end  ?
+```
+assert
+  0 1 2
+from
+  3 &no-op for-range
+end
+
+
+## Numbered "for"-like loop function TODO for start=0 and step=1 short-circuit to for-range
 ```
 def for  3                     # first last+1 step function
-  4 tor                        # F f l s
-  rot3                         # F l s f
+  as func
+  as step
+  as last
+  as first
+  step is-one first is-zero and if (
+    rm step rm first
+    last rm last func rm func for-range break
+  )
+  func last step first
+  rm func rm step rm last rm first
   :for                         # F l s f "for"
   :count push                  # F l s {count->first}
   :step push                   # F l {count, step->step}
@@ -42,9 +74,9 @@ def for  3                     # first last+1 step function
     :count push                # {}
     up .for_                   # for_ -> {}
     for'                       # tail recursion
-  end  nil
+  end  ?
   for'                         # start the loop
-end nil                        # loop could modify the stack
+end  ?                         # loop could modify the stack
 ```
 assert
   256 256
@@ -66,32 +98,8 @@ from
 end
 
 
-## Iterate over a list
+## Interruptible for loop with a return value
 ```
-def foreach  2    # list func
-  as func
-  as list
-
-  def each  1
-    list swap pull popnos # elem
-    func apply
-  end  nil
-
-  list :num pull popnos
-  0 swap 1 &each for
-end  nil
-```
-assert
-  6 9 3
-from
-  def add  1
-    3 *
-  end  1
-  [ 2 3 1 ] &add foreach
-end
-
-
-## Interruptible for loop with a return value ##
 def forbreak  4     # from to step func
   False as stopped  # flag to stop the loop
   nil as returned   # return value
@@ -103,25 +111,49 @@ def forbreak  4     # from to step func
 
   def each  1             # index
     stopped if break pop  # ignore this iteration (until last)
-    func' apply            # call the original function
+    func' apply           # call the original function
   end  0
 
   as func'          # index -> -
   &each for         # replace call to func by each function
   returned
 end  1              # return value from loop
+```
 assert
   5
 from
   def until5  1
-    dup 5 eq if break break'  # don't compute the remaining iterations
-    pop
+    5 eq if break 5 break'  # don't compute the remaining iterations
   end  0
   3 9 1 &until5 forbreak
 end
 
 
-## Conditional loop #
+## Iterate over a list
+```
+def foreach  2    # list func
+  as func'
+  as list'
+
+  def foreach'  1
+    list' swap pull popnos   # elem
+    func' apply
+  end  ?
+
+  ( list' :num pull popnos ) &foreach' for-range
+end  ?
+```
+assert
+  6 9 3
+from
+  def op  1
+    3 *
+  end  1
+  [ 2 3 1 ] &op foreach
+end
+
+
+## Conditional loop
 def while 2                   # predicate 0->bool function 0->0
   as func
   as pred

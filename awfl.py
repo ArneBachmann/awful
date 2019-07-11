@@ -1,12 +1,12 @@
 ''' AWFUL: Arguably's Worst F*cked-Up Language. '''
 
-import copy, decimal, doctest, fractions, os, sys
+import copy, decimal, doctest, fractions, os, sys, time
 from functools import reduce
 
 
 # Reserved language words and operators
 EOL, TAIL_RECURSION = '__EOL__', '__TAILR__'
-NIL = 'nil'
+NIL, UNKNOWN = 'nil', '?'
 SYMBOLS = COMMENT, SYMBOL, QUOTE, DOT, REF = '#', ':', '"', '.', '&'
 ESCAPE, SPACE = '\\"', ' '
 NUMERICS = PLUS, MINUS, TIMES, DIVMOD = '+', '-', '*', '//'
@@ -349,7 +349,7 @@ def getVariable(inDict, key, remove = False):
   if remove:
     if debug: print("VARRM %s" % key)
     del inDict[prefix]
-  else:
+  else:  # get from dictionary/heap
     if isinstance(inDict[prefix], int): return makeNumber(inDict[prefix])
     if inDict[prefix].get(TYPE, -999) == FILE: return inDict[prefix]
     return copy.deepcopy(inDict[prefix])
@@ -375,7 +375,8 @@ def evaluate(tokens, namespaces, stack):
       returns BREAK to stop evaluating the current function (and not only current group)
       returns TAIL_RECURSION, passed on to caller by interpret() to let inner() know that the execution needs to be repeated/continued
   '''
-  global debug
+  global counter, debug
+  counter += 1
   token = next(tokens)  # raises StopIteration exception when stream is depleted -> captured by interpret()
   assert isinstance(token, str)  # the tokenizer and parser ensure that each string has at least one character
 
@@ -579,6 +580,7 @@ def evaluate(tokens, namespaces, stack):
     def func(code, inputs, outputs):
       def inner(tokens, namespaces, stack):
         if debug: print("FUNCT %r" % name)
+        global calls; calls += 1
         before = len(stack)
         if inputs > before: raise RuntimeViolation("function %s requires %d input arguments" % (name, inputs))
         try:
@@ -595,7 +597,7 @@ def evaluate(tokens, namespaces, stack):
         finally: namespaces.pop(); callstack.pop()
         if debug: print("ENDFN %r" % name); print("STACK " + stackStr(stack))
         if error: return error  # or break
-        if outputs != NIL:
+        if outputs != UNKNOWN:  # check post-condition
           difference = len(stack) - (before - inputs + int(outputs))
           if difference != 0: raise RuntimeViolation("function %r stack size discrepancy %d" % (".".join(callstack + [name]), difference))
           return
@@ -622,7 +624,7 @@ def evaluate(tokens, namespaces, stack):
         for i, e in zip(isstack, exstack)]),\
         "SHOULD %s BUT WAS %s for %s" % (stackStr(exstack), stackStr(isstack), formatCodeBlock(test))
     except (AssertionError, Exception) as E:
-      try: print("FAILD %r in %r" % (E, test) + "\nSTWAS " + stackStr(isstack) + " = %r" % isstack)
+      try: print("FAILD %s in %s" % (E, test) + "\nSTWAS " + stackStr(isstack) + repr(isstack))
       except: print("ERROR %r" % test)
       if '--interactive' in sys.argv: import pdb; pdb.set_trace()
     return
@@ -730,7 +732,7 @@ def parse(file, tokens, i = -1, until = END, comments = True):
         try: int(u[1])
         except (TypeError, ValueError): Error("{x} #inputs syntax", vars())
         if not isinstance(tokens[i + 1][1], str): Error("{x} #outputs missing", vars())
-        try: int(tokens[i + 1][1]) if tokens[i + 1][1] != NIL else NIL  # nil means any number of output
+        try: int(tokens[i + 1][1]) if tokens[i + 1][1] != UNKNOWN else UNKNOWN  # nil means any number of output
         except (TypeError, ValueError): Error("{x} #outputs syntax {t}", {"x": x, "t": tokens[i + 1][1], "file": file, "l": tokens[i + 1][0]})
       elif x == ASSERT:
         u, i = parse(file, tokens, i, DEFS[FROM])
@@ -779,16 +781,18 @@ if __name__ == '__main__':
     debug all       show all namespace entries
     debug assert    start debugger at each assert
     debug <token>   start debugger at each <token>\n"""); sys.exit(0)
-  debug = False; error, count = doctest.testmod()  # must define debug here to have it in test cases
+  debug, counter, calls, start_ts = False, 0, 0, time.time(); error, count = doctest.testmod()  # must define debug here to have it in test cases
   if '--decimals' in sys.argv: index = sys.argv.index('--decimals'); decimal.getcontext().prec = int(sys.argv[index + 1]); del sys.argv[index:index+2]  # define decimal precision before applying float techniques
   else: decimal.getcontext().prec = 1000
   if error != 0: raise Exception("%d out of %d self-tests failed" % (error, count))
   callstack, includes, stack, namespaces, aliases, debug, optimize, items = [], set(), [], [{}], {}, "system" if '--debug' in sys.argv else False, '--optimize' in sys.argv, []  # stack and global namespace
   size = lambda l: sum([1 if not isinstance(_, list) else size(_) for _ in l]); assert 5 == size([1, 2, 3, [3, 4]])
-  for file in [_ for _ in sys.argv[1:] if _.endswith(".awfl")]:
+  files = [_ for _ in sys.argv[1:] if _.endswith(".awfl")]
+  if debug: print("Running files: %s" % " ".join(files))
+  for file in files:
     tokens = include(file.rstrip(".awfl"), file, 0)
     _ = parse(file, tokens); items.extend(_[0])
-  if debug: print("Parsed %d items from %r" % (size(items), file))
+    if debug: print("Parsed %d items from %r" % (size(items), file))
   error = interpret(TokenIter(items), namespaces, stack)
   if '--repl' in sys.argv:
     count = 0
@@ -804,3 +808,6 @@ if __name__ == '__main__':
   if error: print(namespaceStr(namespaces))
   if stack: print("STACK " + stackStr(stack))
   if error: print("ERROR " + error)
+  if '--stats' in sys.argv:
+    print("Number of instructions processed: %d (%.0f/s)" % (counter, counter / (time.time() - start_ts)))
+    print("Number of function calls:         %d (%.0f/s)" % (calls, calls / (time.time() - start_ts)))

@@ -1,10 +1,10 @@
 # Multi-dimensional arrays
-## array-create 1/1, array-set 2/1
+## array-create 2/1, array-get 2/1, array-set 3/1
 
 include lists
 
 
-# Create an n-dimensional array
+## Create an n-dimensional array
 ```
 def array-create  2     # list of dimension sizes initial
   as initial            # value to put into each cell
@@ -22,10 +22,10 @@ def array-create  2     # list of dimension sizes initial
     rest initial array-create   # recurse into next dimension
     list-append
     up .arr
-  end  nil
+  end  ?
 
   list-create as arr
-  0 dim 1 &dim-recurse for
+  dim &dim-recurse for-range
   arr
 end  1
 ```
@@ -37,4 +37,62 @@ from
   [ ]   nil array-create
   [ 1 ]   1 array-create
   [ 3 2 ] 2 array-create
+end
+
+
+## Get a value
+```
+def array-get  2    # array indexes
+  :num pull as dims
+  as index
+  as array
+
+  def each  1
+    index swap pull  # get dimension's index
+    popnos
+    array
+    swap pull
+    popnos
+    up array
+  end  0
+
+  dims &each for-range
+  array               # found cell
+end  1
+```
+assert
+  :3
+  :x
+from
+  [ 1 2 3 4 5 6 ] [ 2 ] array-get
+  [ [ :a :b ] [ :x :y ] ] [ 1 0 ] array-get
+end
+
+
+## Set a value
+```
+def array-set  3    # array indexes value
+  as value
+  as index
+  as array
+
+  index list-len    # remaining-dims
+  1 gt if (         # not last dimension
+    index 0 list-popi as dim as index'
+    array dim list-get as array'    # n-th dimension sub-array
+    array' index' value array-set   # recurse
+    array dim rot3 list-set         # updated-sub-array
+    break
+  )
+  value array
+  index 0 list-get                  # bottom dimension index
+  push
+end  1
+```
+assert
+  [ 1 :x 3 ]
+  [ [ 1 2 ] [ 1 nil 3 ] [ :x :y ] ]
+from
+  [ 1 2 3 ] [ 1 ] :x array-set
+  [ [ 1 2 ] [ 1 2 3 ] [ :x :y ] ] [ 1 1 ] nil array-set
 end

@@ -123,6 +123,7 @@ end
 assert
   2 4
   5 6   # 7 and 9 should not occur!
+  :x0
 from
   False if 1
   True  if 2
@@ -130,11 +131,25 @@ from
     3
   )
   True if ( 4 )
-  True if (
+  def afunc  0
     True if (
-      5 break 6
-      7
+      True if (
+        5 break 6
+        7
+      )
+      9
     )
-    9
-  )
+  end  2
+  afunc
+
+  def bfunc  0
+    True if (
+      True if (
+        True if break :x0
+      )
+      :x1
+    )
+    :x2
+  end  1
+  bfunc
 end

@@ -1,0 +1,92 @@
+# Game of life
+### life-init 0/0
+
+include maths     # floor, random_byte
+include termgraph
+
+30 as game_width
+15 as game_height
+
+:O  as game_cell
+" " as cell_dead
+game_width game_height * as game_size
+
+
+## Initialize the playing field with pseudo-random cells
+```
+def life-init  0
+  game_width game_height term-init
+  game_size 1.5 / floor as points   # cells to set in the field
+
+  def set  1
+    pop
+    random_byte game_height % as y
+    random_byte game_width  % as x
+    terminal' y x 2 list-from-stack game_cell array-set up terminal'
+  end  0
+
+  0 points 1 &set for
+end  0
+```
+
+
+## Compute next life-cycle step
+```
+def life-compute  0
+  terminal' as last   # deep copy of screen buffer
+
+  def frame-col  1
+    as x'
+    x' 0 eq if (
+      y' 0 eq if break  # don't count current cell
+    )
+    y y' + game_height + game_height %    # compute parent cell for frame location around cell
+    x x' + game_width  + game_width %
+    2 list-from-stack                     # create array index
+    last swap array-get
+    game_cell string-eq if ( frame_count inc1 up frame_count )
+  end  0
+
+  def frame-row  1
+    as y'
+    -1 2 1 &frame-col for
+  end  0
+
+  def col  1
+    as x
+    0 as frame_count      # alive cells current location
+    -1 2 1 &frame-row for
+    frame_count 2 lt if ( terminal' y x 2 list-from-stack cell_dead array-set up terminal' )  # cell dies from underpopulation
+    frame_count 2 eq if ( terminal' y x 2 list-from-stack game_cell array-set up terminal' )  # cell survives
+    frame_count 3 eq if ( terminal' y x 2 list-from-stack game_cell array-set up terminal' )  # cell survices or is born
+    frame_count 3 gt if ( terminal' y x 2 list-from-stack cell_dead array-set up terminal' )  # cell dies from overpopulation
+  end  0
+
+  def row  1
+    as y
+    0 game_width 1 &col for
+  end  0
+  0 game_height 1 &row for
+end  0
+```
+
+
+assert
+from
+  "Number of rounds: " input as-number as rounds
+  stdout "Creating game field" println pop
+  life-init
+  term-print
+
+  def run  1
+    dup is-zero if break
+    dup rounds swap - as-string
+    stdout swap ": Computing next step" string-concat println pop
+    1 -             # decrase counter
+    life-compute
+    term-print
+    run
+  end  1
+  rounds dup 1 + up rounds
+  run pop
+end

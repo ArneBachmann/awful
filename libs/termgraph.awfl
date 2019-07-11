@@ -1,0 +1,40 @@
+# Terminal graphics
+### term-init 0/0, term-print 0/0, term-draw-xy 4/1
+
+include arrays
+include console
+
+
+## Global variable
+nil as terminal'
+
+
+## Initialize the terminal memory buffer
+```
+def term-init  2      # width height
+  swap 2 list-from-stack
+  " " array-create up terminal'
+end  0
+```
+
+
+## Print out the terminal buffer
+```
+def term-print  0
+  terminal' list-len as height
+  terminal' 0 list-popi popnos list-len as width
+
+  def row  1
+    terminal' swap pull popnos
+    "" string-concat-list
+    stdout swap println pop
+  end  0
+
+  height &row for-range
+end  0
+```
+assert
+from
+#  10 6 term-init
+#  term-print
+end

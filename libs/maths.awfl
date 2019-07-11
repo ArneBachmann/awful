@@ -11,6 +11,7 @@ include types
 ## Pseudo-random number generator (bytes)
 457239 as _random_seed
 nil as _random_value
+
 def random_byte  0
   _random_value is-nil if ( _random_seed up _random_value )
   _random_value 255 * 999999 / floor  # put new byte on stack

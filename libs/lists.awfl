@@ -26,9 +26,11 @@ end
 
 
 ## Determine length of list
+```
 def list-len  1
   :num pull popnos
 end  1
+```
 assert
   0 1 2
 from
@@ -38,14 +40,29 @@ from
 end
 
 
-## Get an list element
+## Get a list element
+```
 def list-get  2     # list index
   pull popnos       # elem
 end  1
+```
 assert
   :x
 from
   [ 1 :x ] 1 list-get
+end
+
+
+## Set a list element
+```
+def list-set  3     # list index value
+  3tor push         # value list index
+end  1
+```
+assert
+  [ 1 :x 3 ]
+from
+  [ 1 2 3 ] 1 :x list-set
 end
 
 
@@ -73,7 +90,7 @@ def list-copy  5                  # source-list target-list from-index to-index 
     up ...target                  # 3 parents: copy->for'->for
   end  0
 
-  0 count 1 &copy for             # copy loop (Python: for i in range(0, count, 1))
+  count &copy for-range             # copy loop (Python: for i in range(0, count, 1))
   target :num pull                # target num
   to count + lt if (              # if num is too low
     to count + swap :num pushi    # increase size WARN could leave out elements before "to"
@@ -105,7 +122,7 @@ def list-concat  2
     up ...a
   end  0
 
-  0 len 1 &copy for
+  len &copy for-range
   a len offset + swap :num pushi  # update list length
 end  1
 ```
@@ -153,7 +170,7 @@ def list-split-at  2  # list index
     up ...n             #    n -> n
   end  0
 
-  0 num 1 &split for
+  num &split for-range
   index l :num pushi      # update counter of original list
   list-crop'              # remove all elements over index
   num n :num pushi        # set counter of freshly created split list
@@ -343,7 +360,7 @@ def reduce  3         # list initial func(2->1)
     up ...last    # -
   end  0
 
-  0 num 1 &each for
+  num &each for-range
   last
 end  1            # result of reduction
 assert
@@ -358,7 +375,7 @@ end
 ## Map over a list
 ```
 def map  2          # list func
-  as func           #   func -> func
+  as map-func       #   func -> func
   :num pull as num  #   num -> num
   as l              #   l -> l
 
@@ -366,12 +383,13 @@ def map  2          # list func
     as i            #   i -> i
     l i pull        # l elem-i
     popnos          # elem-i
-    func apply      # l func(elem-i)
+    map-func apply  # l func(elem-i)
     l i push        # l(updated)
     up ...l         #   l -> l
   end  0            # -
 
-  0 num 1 &each for l
+  num &each for-range
+  l
 end  1              # mapped list
 ```
 assert
@@ -397,7 +415,7 @@ def filter  2       # list predicate
     result swap list-append up result
   end  0
 
-  0 num 1 &step for
+  num &step for-range
   result
 end  1              # filtered list
 assert
@@ -504,7 +522,7 @@ def list-find  2        # list value
     ...value eq if break i up ...value True up ...found
   end  0
 
-  0 num 1 &check for
+  num &check for-range
   found dup if break value
   nil
 end  2  # :ok|nil nil|index
@@ -575,11 +593,11 @@ def list-from-stack  2    # elements num
     swap          # elements list elem
     list-append   # append element to end of list (reversed)
     pull'
-  end  nil
+  end  ?
 
   pull'
   list-reverse
-end  nil
+end  ?
 ```
 assert
   1 [ 2 3 ]
@@ -589,6 +607,7 @@ end
 
 
 ## Expand list to stack
+```
 def list-to-stack  1
   :num pull as n
   0 as i
@@ -599,9 +618,10 @@ def list-to-stack  1
     i 1 + up i            # i->i+1
     swap                  # elem-i list'
     push'
-  end  nil
+  end  ?
   push'
-end  nil
+end  ?
+```
 assert
   1 2 3
 from
@@ -610,11 +630,13 @@ end
 
 
 ## Reverse order of elements on stack. TODO could also be implemented using only nib and bin TODO fits best in stack.awfl
+```
 def reverse  2  # elements... num
   list-from-stack
   list-reverse
   list-to-stack
 end  1
+```
 assert
   3 2 1
 from
@@ -645,6 +667,7 @@ end
 
 
 ## List sorting algorithm (the worst: selection sort)
+```
 def list-sort  1
   :num pull as num
   as list'
@@ -658,9 +681,10 @@ def list-sort  1
     result min' list-append up result
   end  0
 
-  0 num 1 &elem for
+  num &elem for-range
   result
 end  1
+```
 assert
   [ -4 0 1 2 3 5 ]
 from

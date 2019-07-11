@@ -1,11 +1,12 @@
 # String operations #
-### string-from-list, string-concat, string-split-at, string-len, string-insert-at
+### string-from-list 1/1, string-concat 2/1, string-concat-list 2/1, string-split-at 2/2, string-len 1/1, string-insert-at 3/1, string-eq 2/1
 
 include basicmaths
 include lists
 
 
-## Convert a list (of codepoints) into a string (via pushi) ##
+## Convert a list (of codepoints) into a string (via pushi instruction)
+```
 def string-from-list  1   # l
   as l                    #    l -> l
 
@@ -21,20 +22,25 @@ def string-from-list  1   # l
   &convert for            # (loop)
   3 l :type pushi         # convert type and leave string on stack
 end  1
+```
 assert
+  ""
   "abc"
   "54343/1000"
 from
+  [ ] string-from-list
   [ 97 98 99 ] string-from-list
   54.343 string-from-list
 end
 
 
-## Concatenate two strings ##
+## Concatenate two strings
+```
 def string-concat  2
   list-concat
   string-from-list
 end  1
+```
 assert
   "abcde"
 from
@@ -42,7 +48,34 @@ from
 end
 
 
-## String splitting ##
+## Concatenate a list of strings
+```
+def string-concat-list  2
+  as separator
+  as list
+  list list-len as remain
+  list list-to-stack      # roll out entire list
+
+  def concat'  0
+    remain
+    1 le if break
+    separator swap string-concat string-concat
+    remain 1 - up remain
+    concat'
+  end  ?
+
+  concat'
+end  1
+```
+assert
+  "ab cd e"
+from
+  [ :ab :cd :e ] " " string-concat-list
+end
+
+
+## String splitting
+```
 def string-split-at  2    # string index
   list-split-at           # list1 list2
   string-from-list        # list1 s2
@@ -50,6 +83,7 @@ def string-split-at  2    # string index
   string-from-list        # s2 s1
   swap                    # s1 s2
 end  2
+```
 assert
   "abc"
   "de"
@@ -60,9 +94,11 @@ assert "abcde" from "abcde" 2 string-split-at string-concat end
 
 
 ## Get string length
+```
 def string-len  1
   :num pull popnos
 end  1
+```
 assert
   3 0 1
 from
@@ -72,7 +108,8 @@ from
 end
 
 
-## Insert a string at a position ##
+## Insert a string at a position
+```
 def string-insert-at  3     # string index insert-string
   as toinsert
   as index
@@ -80,6 +117,7 @@ def string-insert-at  3     # string index insert-string
   swap toinsert string-concat
   swap string-concat
 end  1
+```
 assert
   :axbc
   :xabc
@@ -88,4 +126,33 @@ from
   "abc" 1 :x string-insert-at
   "abc" 0 :x string-insert-at
   "abc" 3 :x string-insert-at
+end
+
+
+## Compare two strings
+```
+def string-eq  2  # s t
+  as b as a
+  a :num pull popnos as len
+  b :num pull popnos
+  len ne if break False
+
+  def cmp  1
+    as i
+    a i pull popnos
+    b i pull popnos
+    ne if break False break'    # set result to False
+  end  0
+  0 len 1 &cmp forbreak
+  is-nil
+end  1  # boolean equality
+```
+assert
+  False
+  True
+  False
+from
+  :a :ab  string-eq
+  :ab :ab string-eq
+  :xy :xz string-eq
 end
