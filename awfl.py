@@ -24,7 +24,7 @@ FILES = OPEN, CREATE, CLOSE, READ, WRITE = 'open', 'create', 'close', 'read', 'w
 STREAMS = STDIN, STDOUT, STDERR, SYSTEM = '_stdin', '_stdout', '_stderr', 'system'
 INTERRUPTS = BREAK, ERROR = 'break', 'error'
 TESTING = ASSERT, FROM = 'assert', 'from'
-INTERACTIVE = DEBUG, IGNORE, ON, OFF, HERE = 'debug', 'ignore', 'on', 'off', 'here'
+INTERACTIVE = DEBUG, IGNORE, ON, OFF, THIS = 'debug', 'ignore', 'on', 'off', 'this'
 SOURCE = LIBS, INCLUDE, WORDS = 'libs', 'include', 'words'
 RESERVED = set(reduce(lambda a, b: a + (list(b) if isinstance(b, tuple) else [b]), (NIL, SYMBOLS, NUMERICS, GROUPING, LISTS, TRUTH,
     STACKOPS, FUNCTIONS, CONDITIONAL, ORDERED, VARIABLES, STRUCTURES, FILES, STREAMS, INTERRUPTS, TESTING, INTERACTIVE, SOURCE), []))
@@ -36,7 +36,7 @@ INDENT_N = 2  # spaces per indentation step
 INDENT = SPACE * INDENT_N
 TYPE, NUM, NONE = 'type', 'num', None  # reserved fields in internal data representation
 TYPES = FILE, CODE, NILT, BOOL, NUMBER, STRING, LIST, FUNC = -2, -1, 0, 1, 2, 3, 4, 5  # of internal presentation dict[TYPE]
-# 6 = maps, 7 = sets
+# standard library: 6 = maps, 7 = sets
 
 
 class ParsingError(Exception): pass
@@ -383,8 +383,8 @@ def evaluate(tokens, namespaces, stack):
   if token in (EOL, TAIL_RECURSION): return None if token is EOL else TAIL_RECURSION
 
   if debug:
-    if debug == "this": debug = False  # reset flag after printout
-    if '--words' in sys.argv: print(namespaceStr(namespaces))
+    if debug == THIS: debug = False  # reset flag after printout
+    if '--words' in sys.argv: print(namespaceStr(namespaces[-2:]))
     print("STACK " + stackStr(stack))
     print("TOKEN %s" % ({EOL: "EOL", TAIL_RECURSION: "TAILR"}.get(token, repr(token))))
 
@@ -464,7 +464,7 @@ def evaluate(tokens, namespaces, stack):
     symbol = stack.pop(-1)
     if getType(symbol) == NUMBER: symbol = str(int(getNumber(symbol)))
     elif getType(symbol) == STRING: symbol = getString(symbol)
-    else: raise RuntimeViolation("%s requires one symbol or integer as key on the stack but got %r" % (token, symbol))  # TODO assert only legal characters in symbol (which are? dot? colon? alpha-numeric? use strings module)
+    else: raise RuntimeViolation("%s requires one symbol or integer as key on the stack but got %r" % (token, symbol))
     parent = stack[-1]  # we leave the existing structure on the stack
     path = [_ for _ in symbol.split(DOT) if _ != ""]  # safe split
     if token == PULL:
@@ -479,8 +479,6 @@ def evaluate(tokens, namespaces, stack):
       if step in parent: parent = parent[step]; continue
       parent[step] = {}  # create if not exists
     value = stack.pop(-2)  # consume data from stack
-#    if value == _NIL: del parent[path[-1]]  # pushing nil removes the entry TODO this is not consistent
-#    else:
     parent[path[-1]] = int(getNumber(value)) if token == PUSHI else value  # integrate into data structure
     return
 
@@ -651,7 +649,6 @@ def evaluate(tokens, namespaces, stack):
     if count > len(namespaces): raise RuntimeViolation("cannot dereference parent namespace beyond global namespace")
   for namespace in namespaces[-count:-len(namespaces)-1:-1]:  # from local to global
     if (token if DOT not in token else token[:token.index(DOT)]) in namespace:  # function call or variable
-      if debug == token: import pdb; pdb.set_trace()  # function-specific debug trigger
       if token in namespace and callable(namespace[token]): return namespace[token](tokens, namespaces, stack)  # call the function
       stack.append(getVariable(namespace, token))  # put variable (sub-structure) on TOS
       return
@@ -686,7 +683,7 @@ def fromLiteral(token):
   return makeNumber(parseNumber(token))
 
 
-def parse(file, tokens, i = -1, until = END, comments = True):
+def parseFile(file, tokens, i = -1, until = END, comments = True):
   ''' Combine the tokens and perform syntax checks. Return a list of tokens and further nested lists, and the token counter. '''
   def Error(message, kwargs): raise ParsingError((message + " in file {file} on line {l}").format(**kwargs))  # reused exception
   n, t, x = len(tokens), [], None
@@ -722,7 +719,7 @@ def parse(file, tokens, i = -1, until = END, comments = True):
       t.append(x)  # mark the meaning of the following list with the opening symbol
       if x in NAMEDEFS and i + 1 >= n: Error("{x} without name", vars())
       if x in (ALIAS, DEF) and tokens[i + 1][1] in RESERVED: Error("{x} name is a reserved symbol %s" % tokens[i + 1][1], vars())
-      u, i = parse(file, tokens, i, DEFS[x], comments = x not in (NEWLIST, GROUP))  # recursive list parsing
+      u, i = parseFile(file, tokens, i, DEFS[x], comments = x not in (NEWLIST, GROUP))  # recursive list parsing
       t.append(u)  # add recursive list
       if len(u) < {ALIAS: 2, DEF: 3}.get(x, 0): Error("{x} body with insufficient contents (forgot a closing keyword earlier?)", vars())
       if x == ERROR and "".join([u[0][0], u[0][-1]]) != '""': Error("{x} without error message" , vars())
@@ -730,12 +727,12 @@ def parse(file, tokens, i = -1, until = END, comments = True):
         if not isinstance(u[0], str): Error("{x} name missing", vars())
         if not isinstance(u[1], str): Error("{x} #inputs missing", vars())
         try: int(u[1])
-        except (TypeError, ValueError): Error("{x} #inputs syntax", vars())
+        except (TypeError, ValueError) as E: Error("{x} #inputs syntax {E}", vars())
         if not isinstance(tokens[i + 1][1], str): Error("{x} #outputs missing", vars())
         try: int(tokens[i + 1][1]) if tokens[i + 1][1] != UNKNOWN else UNKNOWN  # nil means any number of output
-        except (TypeError, ValueError): Error("{x} #outputs syntax {t}", {"x": x, "t": tokens[i + 1][1], "file": file, "l": tokens[i + 1][0]})
+        except (TypeError, ValueError) as E: Error("{x} #outputs syntax {t} {E}", {"x": x, "t": tokens[i + 1][1], "file": file, "l": tokens[i + 1][0]})
       elif x == ASSERT:
-        u, i = parse(file, tokens, i, DEFS[FROM])
+        u, i = parseFile(file, tokens, i, DEFS[FROM])
         if len(u) == 0: Error("%s body with insufficient contents" % FROM, vars())
         t.append(u)  # parse second part of assert
     elif x == IGNORE:  # ignore everything until "ignore off"
@@ -748,7 +745,7 @@ def parse(file, tokens, i = -1, until = END, comments = True):
     elif x == DEBUG:
       t.append(x); i += 1
       if i >= n: Error("{x} requires one argument", {"x": x, "file": file, "l": tokens[i + 1][0]})
-      if tokens[i][1] not in (ON, OFF, HERE, ASSERT, "all", "this"): Error("{x} wrong argument {y}", {"x": x, "y": tokens[i][1], "file": file, "l": tokens[i][0]})
+      if tokens[i][1] not in (ON, OFF, THIS): Error("{x} wrong argument {y}", {"x": x, "y": tokens[i][1], "file": file, "l": tokens[i][0]})
       t.append(tokens[i][1])
     elif len(x.replace(DOT, "")) == 0: Error("syntax error {x}", vars())
     else: t.append(x)
@@ -771,16 +768,22 @@ def include(name, file, line):
 
 
 if __name__ == '__main__':
-  if '--help' in sys.argv: print("""AWFUL V0.1  (C) 2019 Arne Bachmann
-    --debug         show parser info and enable live debugger
-    --tokens        show tokens at parsetime
-    --optimize      remove most comments and safety checks from runtime
-    --decimals <n>  set decimal computation precision
+  if '--help' in sys.argv: print("""AWFUL V0.2  (C) 2019 Arne Bachmann
 
-    debug on        show what happens in the runtime
-    debug all       show all namespace entries
-    debug assert    start debugger at each assert
-    debug <token>   start debugger at each <token>\n"""); sys.exit(0)
+python3 awfl.py [-O] [file1.awfl [file2.awfl [...]]] [--options]
+
+-O              Disable all runtime checks
+--debug         Show parser info and enable live debugger
+--decimals <n>  Set decimal computation precision to n digits
+--help          Show this interpreter options
+--interactive   In case of test case failure, drop into a python debug shell
+--optimize      Remove most comments and assert statements from runtime
+--repl          Start interactive AWFUL shell after running provided files
+--stats         Show interpreter run statistics before interpreter shutdown
+--tokens        Display tokens at parsetime
+--words         Display all words in all namespaces
+
+Debug command options: on, off, this\n"""); sys.exit(0)
   debug, counter, calls, start_ts = False, 0, 0, time.time(); error, count = doctest.testmod()  # must define debug here to have it in test cases
   if '--decimals' in sys.argv: index = sys.argv.index('--decimals'); decimal.getcontext().prec = int(sys.argv[index + 1]); del sys.argv[index:index+2]  # define decimal precision before applying float techniques
   else: decimal.getcontext().prec = 1000
@@ -791,7 +794,7 @@ if __name__ == '__main__':
   if debug: print("Running files: %s" % " ".join(files))
   for file in files:
     tokens = include(file.rstrip(".awfl"), file, 0)
-    _ = parse(file, tokens); items.extend(_[0])
+    _ = parseFile(file, tokens); items.extend(_[0])
     if debug: print("Parsed %d items from %r" % (size(items), file))
   error = interpret(TokenIter(items), namespaces, stack)
   if '--repl' in sys.argv:
@@ -801,7 +804,7 @@ if __name__ == '__main__':
       items = input("%4d-> " % count).replace("\n", "").replace("\r", "")
       if items in ("exit", "quit"): break
       tokens = tokenize(items)
-      items, _ = parse("repl", tokens)
+      items, _ = parseFile("repl", tokens)
       error = interpret(TokenIter(items), namespaces, stack)
       if error: print(repr(error))
       print("STACK " + stackStr(stack))

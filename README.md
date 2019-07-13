@@ -60,6 +60,27 @@ AWFUL's features include:
 - general appearance and terminology inspired by Python
 
 
+## Running the interpreter
+
+```
+AWFUL V0.2  (C) 2019 Arne Bachmann
+
+python3 awfl.py [file1.awfl [file2.awfl [...]]] [--options]
+
+--debug         Show parser info and enable live debugger
+--decimals <n>  Set decimal computation precision to n digits
+--help          Show this interpreter options
+--interactive   In case of test case failure, drop into a python debug shell
+--optimize      Remove most comments and safety checks from runtime
+--repl          Start interactive AWFUL shell after running provided files
+--stats         Show interpreter run statistics before interpreter shutdown
+--tokens        Display tokens at parsetime
+--words         Display all words in all namespaces
+
+Debug command options: on, off, this
+```
+
+
 ## Definitions
 - *token*: a string of characters extracted from the source file, separated by whitespace from adjacent tokens (exceptions: quoted string parsing and comments, which after parsing constitute one token even with spaces included)
 - *symbol*: a token that is used to specify a data structure key. Symbols are usually represented starting with a colon, e.g. `:num`
@@ -160,6 +181,8 @@ AWFUL's features include:
   - stack
   - strings
   - types
+
+Please note that many library implementations favor the use of other existing library functions over careful algorithm design, often leading to very bad runtime behavior like `O(n^^3)` or worse.
 
 
 ## To do
