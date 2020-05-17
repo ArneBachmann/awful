@@ -196,7 +196,7 @@ from
 end
 
 
-## Compute pi constant using the Nilakantha series
+## Compute pi constant using the Nilakantha series (TODO implement faster convergence via Machin's or Chudnovsky's series https://en.wikipedia.org/wiki/Pi)
 def _compute-pi  1
   as iterations
   3 as result

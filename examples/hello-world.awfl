@@ -1,0 +1,6 @@
+# Hello world
+
+include console
+
+
+"Hello world" println

@@ -183,3 +183,29 @@ def no-op  0
   nil pop
 end  0
 ```
+
+
+## Control structures
+### If - else
+```
+def ifelse  3   # condition &when-true &when-false
+  as no'
+  as yes'
+  if ( yes' apply break )
+       no'  apply
+end  ?  # TODO re-implement as an alias?
+```
+  assert
+    20
+    10
+  from
+    dyndef yes  0
+      10
+    end  ?
+    def    no   0
+      20
+    end  1
+
+    False &yes &no ifelse
+    True  &yes &no ifelse
+  end

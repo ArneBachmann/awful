@@ -42,6 +42,7 @@ INDENT = SPACE * INDENT_N
 TYPE, NUM, NONE = 'type', 'num', None  # reserved fields in internal data representation
 TYPES = FILE, CODE, NILT, BOOL, NUMBER, STRING, LIST, FUNC = -2, -1, 0, 1, 2, 3, 4, 5  # of internal presentation dict[TYPE]
 # type identifiers used in the standard library: 6 = maps, 7 = sets
+SEP = " " if "--compact" in sys.argv else "\n"
 
 
 class ParsingError(Exception): pass
@@ -255,7 +256,7 @@ def orderedDictRepresentation(simple_or_dikt, convert = str):
   '''
   return convert([(k, orderedDictRepresentation(v, convert = lambda a: a)) for k, v in sorted(simple_or_dikt.items())] if isinstance(simple_or_dikt, dict) else simple_or_dikt)
 
-def internalAsString(e, indent = 0, prefix = ""):
+def internalAsString(e, indent = 0, prefix = "", sep = "\n"):
   ''' Create printable representation of a data type.
       Each recursion takes care of its own indentation.
 
@@ -300,17 +301,17 @@ def internalAsString(e, indent = 0, prefix = ""):
   except TypeError as E: raise RuntimeViolation("did you use push instead of pushi? %r" % E)
   keys = set(e.keys()) - keys  # unexpected keys to display
   if tipe == LIST:  # list-like
-    value += p + ("[\n" if e[NUM] > 1 else "[ ")
-    value += "\n".join([internalAsString(e[str(n)], indent + 1 if e[NUM] > 1 else 0) if str(n) in e else ((j if e[NUM] > 1 else "") + '<undef>') for n in range(e[NUM])])
-    value += ("\n" + i + "]") if e[NUM] > 1 else " ]"
+    value += p + ("[" + sep if e[NUM] > 1 else "[ ")
+    value += sep.join([internalAsString(e[str(n)], indent + 1 if sep != " " and e[NUM] > 1 else 0, sep = sep) if str(n) in e else ((j if e[NUM] > 1 else "") + '<undef>') for n in range(e[NUM])])
+    value += (sep + i + "]") if e[NUM] > 1 else " ]"
   if keys:  # further sub-entries
-    value += (" " if value != "" else "") + "{" + ("\n" if len(keys) > 1 else " ")  # opening brace
-    value += "\n".join("%s%s -> %s" % (j if len(keys) > 1 else "", key, internalAsString(e[key], indent + 1, prefix + DOT + key)) for key in sorted(keys))
-    value += "\n%s}" % i if len(keys) > 1 else " }"  # closing brace
+    value += (" " if value != "" else "") + "{" + (sep if len(keys) > 1 else " ")  # opening brace
+    value += sep.join("%s%s -> %s" % (j if len(keys) > 1 else "", key, internalAsString(e[key], indent + (1 if sep != " " else 0), prefix + DOT + key, sep = sep)) for key in sorted(keys))
+    value += sep + "%s}" % i if len(keys) > 1 else " }"  # closing brace
   return value
 
 def stackStr(stack, sep = "\n"):
-  return (("<%s" % sep if len(stack) > 1 else "<") + sep.join([internalAsString(_, 0 if len(stack) == 1 else 1) for _ in stack]) + ("%s>" % sep if len(stack) > 1 else ">")) if len(stack) > 0 else "< >"
+  return (("<%s" % sep if len(stack) > 1 else "<") + sep.join([internalAsString(_, 0 if len(stack) == 1 else 1, sep = sep) for _ in stack]) + ("%s>" % sep if len(stack) > 1 else ">")) if len(stack) > 0 else "< >"
 
 def _namespaceStr(namespace):
   return ",\n".join(["%s%s -> %s" % (2 * INDENT, k, REF + v.name if callable(v) else internalAsString(v, 1)) for k, v in sorted(namespace.items())])
@@ -421,7 +422,7 @@ def compileFunction(op, name, inputs, block, outputs):
           break
       except AssertionError as E: error = "%s: %r" % (".".join(callstack), str(E))  # affects unit test or pre-/post-conditions
       finally: namespaces.pop(); callstack.pop()
-      if debug: print("ENDFN %r" % name) #  ; print("STACK " + stackStr(stack))
+      if debug: print("ENDFN %r" % name) #  ; print("STACK " + stackStr(stack, SEP))
       if error: return error  # or break
       if outputs != UNKNOWN:  # check post-condition
         difference = len(stack) - (before - inputs + int(outputs))
@@ -462,7 +463,7 @@ def evaluate(tokens, namespaces, stack):
   if displayNamespaces: print(namespaceStr(namespaces[-2:]))
   if debug:
     if debug == THIS: debug = False  # reset flag after printout
-    if token[0] != COMMENT: print("STACK " + stackStr(stack))
+    if token[0] != COMMENT: print("STACK " + stackStr(stack, sep = SEP))
     print("TOKEN %s" % ({EOL: "EOL", TAIL_RECURSION: "TAILR"}.get(token, repr(token))))
 
   if token[0] == COMMENT: return  # comments are part of the token stream except in optimized mode
@@ -502,7 +503,7 @@ def evaluate(tokens, namespaces, stack):
     if not getType(value) == NUMBER: raise RuntimeViolation("%s requires one integer argument on the stack" % token)
     n = int(getNumber(value))
     if n < 0: raise RuntimeViolation("%s argument must be a positive integer but is %d" % (token, n))
-    if n > len(stack): raise RuntimeViolation("%s argument %d beyond stack size %s" % (token, n, stackStr(stack)))
+    if n > len(stack): raise RuntimeViolation("%s argument %d beyond stack size %s" % (token, n, stackStr(stack, sep = SEP)))
     if n > 0:
       if   token == NIB: stack.append(stack.pop(-n-1))
       elif token == BIN: stack.insert(-n, stack.pop())
@@ -520,7 +521,7 @@ def evaluate(tokens, namespaces, stack):
       message = _next.pop(0)
       retval = interpret(TokenIter(_next), namespaces, stack)  # cleanup operations
       if debug: print("ERROR %s returned %r" % (message, retval))
-      raise RuntimeViolation("%s %r " % (message, retval) + stackStr(stack))  # notify interpret() about the error
+      raise RuntimeViolation("%s %r " % (message, retval) + stackStr(stack, sep = SEP))  # notify interpret() about the error
 
   if token in VARIABLES:
     name = next(tokens)
@@ -679,12 +680,12 @@ def evaluate(tokens, namespaces, stack):
     try: error = interpret(TokenIter(test),   [{k: copy.deepcopy(v) if not callable(v) and v.get(TYPE, -999) != FILE else v for k, v in namespace.items()} for namespace in namespaces], isstack)
     except RuntimeViolation as E: error = str(E)
     if error: isstack.append(makeString("ERROR " + error))
-    if debug: print("STWAS " + stackStr(isstack))
+    if debug: print("STWAS " + stackStr(isstack, sep = SEP))
     statics = oldstatics
     try: error = interpret(TokenIter(expect), [{k: copy.deepcopy(v) if not callable(v) and v.get(TYPE, -999) != FILE else v for k, v in namespace.items()} for namespace in namespaces], exstack)
     except RuntimeViolation as E: error = str(E)
     if error: exstack.append(makeString("ERROR " + error))
-    if debug: print("STEXP " + stackStr(exstack))
+    if debug: print("STEXP " + stackStr(exstack, sep = SEP))
     statics, sut, E = oldstatics, False, None  # don't keep any compiled functions
     try:
       if not(len(isstack) == len(exstack) and all([(
@@ -701,7 +702,7 @@ def evaluate(tokens, namespaces, stack):
           )
     except Exception as E: pass
     if E:
-      try: print("FAILD %s in %s" % (E, test) + "\nSTWAS " + stackStr(isstack) + repr(isstack))
+      try: print("FAILD %s in %s" % (E, test) + "\nSTWAS " + stackStr(isstack, sep = SEP) + repr(isstack))
       except: print("ERROR %r" % test)
       if '--interactive' in sys.argv: import pdb; pdb.set_trace()
     return
@@ -712,7 +713,7 @@ def evaluate(tokens, namespaces, stack):
 
   if token == NEWLIST: stack.append(fromLiteral(next(tokens))); return  # literal list
 
-#  if token == DYNLIST: lizt = next(tokens); stack.append(lizt); return
+#  if token == DYNLIST: lizt = next(tokens); stack.append(lizt); return  # TODO implement dynamic lists
 
   try: stack.append(fromLiteral(token)); return  # attempt to interpret as a number
   except ParsingError as E: pass
@@ -737,7 +738,7 @@ def evaluate(tokens, namespaces, stack):
   if debug:
     print("-" * 40)
     print(namespaceStr(namespaces))
-    print("STACK " + stackStr(stack))
+    print("STACK " + stackStr(stack, sep = SEP))
     print("ERROR Unknown symbol %r" % token)
   return "Unknown symbol %r" % token  # return non-None value here to let interpret() raise the exception
 
@@ -837,7 +838,7 @@ def parseFile(file, tokens, i = -1, until = END, untilBefore = None, comments = 
     else: t.append(x)
   return t, i
 
-standard = os.path.join(os.path.dirname(os.path.abspath(__file__)), LIBS)
+standard = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), LIBS)
 def include(name, file, line):
   if name in includes: return []  # skip already included files, return no new tokens
   includes.add(name)  # allows mutually recursive including
@@ -877,7 +878,7 @@ Debugging:
 --test           Run test cases
 
 Keywords and symbols:
-  Values:     nil False True " #
+  Values:     nil False True "
   Grouping:   ( ) [ ![ ]
   Maths:      + - * //
   Stack:      nib bin pop dup
@@ -920,7 +921,7 @@ Keywords and symbols:
         error = interpret(TokenIter(items), namespaces, stack)
       except ParsingError as E: print(str(E))
       if error: print(repr(error))
-      print("STACK " + stackStr(stack))
+      print("STACK " + stackStr(stack, sep = SEP))
   elif '--run' in sys.argv:
     items = " ".join([_.strip('"') for _ in sys.argv[sys.argv.index('--run') + 1:]])
     tokens = tokenize(items)
@@ -928,7 +929,7 @@ Keywords and symbols:
     error = interpret(TokenIter(items), namespaces, stack)
     if error: print(repr(error))
   if error: print(namespaceStr(namespaces))
-  if stack: print("STACK " + stackStr(stack))
+  if stack: print("STACK " + stackStr(stack, sep = SEP))
   if error: print("ERROR " + error)
   if '--stats' in sys.argv:
     print("Number of instructions processed: %d (%.0f/s)" % (counter, counter / (time.time() - start_ts)))

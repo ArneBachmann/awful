@@ -8,7 +8,16 @@ This project implements an interpreter for the stack-based programming language 
 AWFUL takes inspiration from many programming language designs and concepts, but is not really informed by them and combines them in the most awful way (e.g. use of terms may differ from existing languages).
 
 The result is a fun little programming language and an usable interpreter that allows to write stack-based programs with a reduced set of keywords and language concepts.
-Here is an example with extensive stack operations:
+Be prepared for many wasted hours getting even simple things right. It's kind of awful.
+
+The first example:
+
+```
+include console
+"Hello world" println
+```
+
+Here is an example using extensive stack operations (considered actually bad practice in Awful):
 
 ```
 # Fibonacci implementation
@@ -25,7 +34,7 @@ def fib  1
 
   def fib'  3             # q p n
     dup 1 le              # q p n n<=1
-      if break pop2       # q  -> exit
+      if break pop2       # q
     3tor over             # n q p q
     +                     # n q p+q
     swapover              # p+q q n
@@ -34,71 +43,92 @@ def fib  1
   end  1
 
   1 0                     # n 1 0
-  rot3                    # 1 0 n  rearrange the function arguments
-  fib'                    # start the tail-recursive loop
+  rot3                    # 1 0 n
+  fib'                    # start the loop
 end  1
 
 
 ## Test cases
 assert -1 "ERROR" from -1 fib end
-assert 0          from 0 fib end
-assert 1          from 1 fib end
-assert 8          from 6 fib end
+assert 0          from 0  fib end
+assert 1          from 1  fib end
+assert 8          from 6  fib end
 assert 6765       from 20 fib end
+assert 222232244629420445529739893461909967206666939096499764990979600  from 300  fib end
 ```
 
 AWFUL's features include:
 
-- bootstrap language definition (parts of the language like `for` loops are built up from a few primitives like `pop`)
+- bootstrap language definition - parts of the language (i.e. `for`, `gt`, `rot`) are built up from a few primitives like `nib`)
 - tail recursion optimization (no callstack limitation due to recursion)
-- hierarchical type system (internal data type representations are built on top of each other)
-- local namespaces
+- hierarchical unified type system (internal data type representations are built on top of each other)
 - nested variable structures (`a`, `a.b`)
-- built-in testing capabilities via `assert` statement
+- namespaces defined by function invocation, not per source definition
+- built-in testing and invariants via `assert` statement
 - stack safety checks
-- function references and variables `&`
-- extensive internal state machine logging `--debug`, `--items`, `--stats`, `debug on/off/this/assert`
+- function references via `&` and variables
+- extensive internal machine logging via `--debug`,`--warn`, `--calls`, `--names`, `--tokens`, and keywords `debug on/off/this`
 - nested `include`
-- source files are valid Markdown documents
-- general appearance and terminology inspired by Python
-- there are no lexical scopes (all included code lines are interpreted as if they were one big file)
+- source files are valid Markdown documents!
+- general appearance and terminology mostly inspired by Python
+- there are no lexical scopes - all included code lines are interpreted as if they were one big file :-/
+
+
+## Installation
+
+> Either install via `pip[3] install awful`, or
+> clone from Github and install via `python[3] setup.py build && pip[3] install -e .`
 
 
 ## Running the interpreter
 
-> `awful arguments-and-options`
+> Run via `awful arguments-and-or-options`
+> Running `awful --help` will display the usage information:
 
 ```
 AWFUL V0.5  (C) 2019-2020 Arne Bachmann
 
-python[3] awfl.py [-O] [file1.awfl [file2.awfl [...]]] [--options]
+python[3] [-O] awfl.py [file1.awfl [file2.awfl [...]]] [<options>]
 
--O              Disable all runtime checks
---calls         Display call hierarchy
---debug         Show parser info and enable live debugger
---decimals <n>  Set decimal computation precision to n digits (default: 1000)
---help          Show this interpreter options
---interactive   In case of test case failure, drop into a python debug shell
---names         Display all words in all namespaces
---optimize      Remove most comments and assert statements from runtime
---repl          Start interactive AWFUL shell after processing given files
---run "<items>" Run given AWFUL commands and quit
---stats         Show interpreter run statistics before interpreter shutdown
---tokens        Display tokens at parsetime
---warn          Show runtime warnings to help finding code problems
---test          Run test cases
+-O               Remove Python assert statements from runtime
+--optimize       Remove Awful comments and asserts
+--decimals <n>   Set decimal computation precision to n digits (default: 1000)
+--run "token s"  Run given AWFUL commands and quit
+--repl           Start interactive AWFUL shell after processing given files
+--help           Show this interpreter options
 
-Debug command options: on, off, this
+Debugging:
+--warn           Show runtime warnings to find code problems
+--debug          Show parser info and enable live debugger
+--calls          Display call hierarchy
+--names          Display all words in all namespaces
+--tokens         Display tokens at parsetime
+--fifo           Display last 15 tokens and stacks in case of error
+--stats          Show interpreter run statistics before interpreter shutdown
+--interactive    In case of test case failure, drop into a python debug shell
+--test           Run test cases
+
+Keywords and symbols:
+  Values:     nil False True "
+  Grouping:   ( ) [ ![ ]
+  Maths:      + - * //
+  Stack:      nib bin pop dup
+  Functions:  def dyndef end & alias apply
+  Logic:      not if eq le ge as up rm
+  Structures: . pull push pushi
+  Files:      open create close read write
+  Control:    break error
+  Testing:    assert from debug ignore on off
 ```
 
 
 ## Definitions
 - *token*: a string of characters extracted from the source file, separated by whitespace from adjacent tokens (exceptions: quoted string parsing and comments, which after parsing constitute one token even with spaces included)
-- *symbol*: a token that is used to specify a data structure key.
+- *data structure*: the internal representation of any data, implemented solely as Python dictionaries
+- *symbol*: a token that is used to specify a data structure key, either an integer number or a lower-case string.
             Symbols are usually represented starting with a colon, e.g. `:num`
 - *variable*: a data structure stored in a namespace under a certain key.
-             Invoking the key puts (a copy of) the variable's contents on the stack; function variables put a function reference on the stack)
-- *data structure*: the internal representation of any data, implemented as Python dictionaries (!)
+             Invoking the key puts (a copy of) the variable's contents on the stack; function variables put a function reference on the stack
 - *TOS*: top of stack (top-most element)
 - *NOS*: next of stack (second element from top)
 
@@ -167,7 +197,7 @@ Debug command options: on, off, this
 
 
 ## Coding guidelines
-- When mixing stack with reference variables, prefer variables retrieval over stack duplication
+- When mixing stack with reference variables, prefer variables retrieval over stack duplication for readability
 - Loop functions usually have the form of
     1. variable processing (from stack)
     2. step function definition
@@ -181,13 +211,12 @@ Debug command options: on, off, this
 
 ## Standard library dependency hierarchy
 - standard
+  - selftests
   - basicmaths
   - basics
-  - files
   - lists
   - loops
   - maps
-  - selftests
   - sets
   - stack
   - types
@@ -199,13 +228,15 @@ Debug command options: on, off, this
   - types
 - io
   - console
+  - files
   - streams
   - strings
+  - system
 
-Please note that many library implementations favor the use of other existing library functions over careful algorithm design, often leading to very disadvantageous runtime behavior of `O(n^^3)` or worse.
+Please note that many library implementations favor the use of other existing library functions over careful algorithmic design, often leading to very disadvantageous runtime behavior, which is just awful.
 
 
-## Debugging
+## Debugging options
 - Insert print statements like `stdout "Bla" printfn`
 - Insert `debug this` for stack prints
 - Use `debug on` and `debug off` to enable detailed output for a passage of code
@@ -216,45 +247,45 @@ Please note that many library implementations favor the use of other existing li
 
 
 ## To do
-- allow empty function bodies?
-- document all keywords
-- option to run assert statements only once (not on every call?)
+- allow group opening `(` on different line than preceding `if`
+- allow empty function bodies
+- document all keywords and the language basics
+- option to run assert statements only once (and not on every call)
   - remove assert from token string after execution?
   - add test vs. assert
-- add exception catching: try block catch block end?
+- add exception catching: e.g. try block catch block end
 - optimization: refactor literal lists and functions into one big static table
   - function invariant checking should be done in the interpreter, not in Python functions
-- add evaluated lists (?)
-- improve error reporting - often you only get obscure Python exceptions without a more specific AWFUL hint
-  - leave file and line number in items
-- add polymorphism?
-- remove all EOLs from item string?
+- add evaluated lists allowing top use variables as content (currently only literals allowed)
+- leave file and line number in items for better debugging
+- add polymorphism
+- remove all EOLs from item string
 - allow more special character escaping (\n\r\t \0\xXX\uXXXX\UXXXXXXXX) in literal strings
 - use colored syntax in REPL
-  - implement full grammar using some kind of parser library (?)
-- implement graphics processing, implement e.g. game of life
-- add multi threading capabilities?
+  - implement full Awful grammar using some kind of parser library
+- add multi threading capabilities
 - interpret `alias` only once
+- allow to implement commands using python `eval` for certain tasks
 
 
-## Defined types
+## Data structure type markers
 
-### Interpreter type internals
+### Interpreter internals
 - -2: open file handle
 - -1: codepoint
 - 0: `nil`
-- 1: bool
-- 2: number
-- 3: string
+- 1: bool - element `0` is -1 (true) or 0 (false)
+- 2: number - string representation of a Python number (int, float, decimal, fraction)
+- 3: string - `:num` marks number of codepoints, `0`..`num-1` are integer codepoints
 - 4: list
-- 5: function (reference)
+- 5: function (reference) - string representation of a function name
 
 ### Standard library
-- 6: maps
-- 7: sets
+- 6: maps - cf. [libs/maps.awfl]
+- 7: sets - cf. [libs/sets.awfl]
 
 
-## Performance
+## Performance benchmark
 The interpreter's performance is - as expected - not just horrible, but really awful.
 For the Fibonacci code, a slowdown factor of roughly 1000 compared to Python is observed.
 Maps are implemented as lists implemented as nested dictionaries...
@@ -263,28 +294,18 @@ You can skip running all self-tests, pre- and post-conditions and invariant chec
 Using the command line option `--optimize` will skip all AWFUL `assert` statements as well.
 
 ```
-> time python3 awfl.py fibonacci.awfl
-real  0m39.041s
-user  0m39.011s
-sys   0m0.024s
+> time awful examples/fibonacci.awfl
+user  0m33,283s
 
-> time python3 -OO awfl.py fibonacci.awfl
-real  0m37.534s
-user  0m37.516s
-sys   0m0.012s
+> time python3 -OO awful/awfl.py examples/fibonacci.awfl
+user  0m32,258s
 
-> time pypy3 awfl.py fibonacci.awfl
-real  0m12.191s
-user  0m12.130s
-sys   0m0.040s
+> time pypy3 awful/awfl.py examples/fibonacci.awfl
+user  0m12,697s
 
-> time python3 fibonacci.py
-real  0m0.043s
-user  0m0.035s
-sys   0m0.008s
+> time python3 examples/fibonacci.py
+user  0m0,025s
 
 > time pypy3 fibonacci.py
-real  0m0.083s
-user  0m0.067s
-sys   0m0.016s
+user  0m0,059s
 ```
