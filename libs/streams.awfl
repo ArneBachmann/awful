@@ -1,5 +1,5 @@
-# Generic stream operations #
-### slurp 1/1, print 2/1, println 2/1
+# Generic stream operations
+### slurp 1/1, fprint 2/1, fprintln 2/1, print 1/0, eprint 1/0, println 1/0, eprintln 1/0
 
 
 include lists
@@ -9,7 +9,7 @@ include types
 alias nl 10 chr end
 
 
-## Get entire stream contents ##
+## Get entire stream contents
 ```
 def slurp  1        # stream
   as stream
@@ -31,9 +31,9 @@ end 2
 ```
 
 
-## Print a string to a stream ##
+## Print a string to a stream
 ```
-def print  2          # stream text
+def fprint  2         # stream text
   :num pull as len    #    len -> #code points
   as prompt
   as stream
@@ -46,19 +46,38 @@ def print  2          # stream text
   end  0
 
   0 len 1 &echo for
-  stream
+  stream              # leave stream on stack
 end  1                # stream
 ```
 
 
-## Print a string with a trailing newline character to a stream ##
+## Print a string with a trailing newline character to a stream
 ```
-def println  2          # stream text
+def fprintln  2         # stream text
   nl string-concat      # append \n to string
-  1 pop
-  print
+  fprint
 end  1                  # stream
 ```
 
 
-## Many related tests are performed in libs/files.awfl ##
+def print  1
+  stdout swap fprint pop
+end  0
+
+
+def println  1
+  stdout swap fprintln pop
+end  0
+
+
+def eprint  1
+  stderr swap fprint pop
+end  0
+
+
+def eprintln  1
+  stderr swap fprintln pop
+end  0
+
+
+## Many related tests are performed in libs/files.awfl

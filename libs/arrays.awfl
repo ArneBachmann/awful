@@ -16,7 +16,7 @@ def array-create  2     # list of dimension sizes initial
   0 list-popi as dim    # rest  dim->dim0
   as rest               #   rest->dim1..n
 
-  def dim-recurse  1    # i
+  def array-create'  1    # i
     pop                 # ignore list index
     arr
     rest initial array-create   # recurse into next dimension
@@ -25,7 +25,7 @@ def array-create  2     # list of dimension sizes initial
   end  ?
 
   list-create as arr
-  dim &dim-recurse for-range
+  dim &array-create' for-range
   arr
 end  1
 ```
@@ -47,25 +47,27 @@ def array-get  2    # array indexes
   as index
   as array
 
-  def each  1
-    index swap pull  # get dimension's index
+  def array-get'  1
+    ...index swap pull  # get dimension's index
     popnos
-    array
+    ...array
     swap pull
     popnos
-    up array
+    up ...array
   end  0
 
-  dims &each for-range
+  dims &array-get' for-range
   array               # found cell
 end  1
 ```
 assert
   :3
   :x
+  :b
 from
   [ 1 2 3 4 5 6 ] [ 2 ] array-get
   [ [ :a :b ] [ :x :y ] ] [ 1 0 ] array-get
+  [ [ :a :b ] [ :x :y ] ] [ 0 1 ] array-get
 end
 
 

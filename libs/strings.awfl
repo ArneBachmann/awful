@@ -1,4 +1,4 @@
-# String operations #
+# String operations
 ### string-from-list 1/1, string-concat 2/1, string-concat-list 2/1, string-split-at 2/2, string-len 1/1, string-insert-at 3/1, string-eq 2/1
 
 include basicmaths
@@ -151,8 +151,16 @@ assert
   False
   True
   False
+  True
+  False
+  False
+  False
 from
   :a :ab  string-eq
   :ab :ab string-eq
   :xy :xz string-eq
+  :x  :x  string-eq
+  :x  :O  string-eq
+  ""  " " string-eq
+  " "  "" string-eq
 end

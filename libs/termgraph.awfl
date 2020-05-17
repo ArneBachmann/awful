@@ -6,14 +6,23 @@ include console
 
 
 ## Global variable
-nil as terminal'
+nil as TERMINAL
 
 
 ## Initialize the terminal memory buffer
 ```
 def term-init  2      # width height
   swap 2 list-from-stack
-  " " array-create up terminal'
+  " " array-create up TERMINAL
+end  0
+```
+
+
+## Initialize the terminal memory buffer with a defined character
+```
+def term-fill  3      # width height initial
+  3tor swap 2 list-from-stack
+  swap array-create up TERMINAL
 end  0
 ```
 
@@ -21,13 +30,13 @@ end  0
 ## Print out the terminal buffer
 ```
 def term-print  0
-  terminal' list-len as height
-  terminal' 0 list-popi popnos list-len as width
+  TERMINAL list-len as height
+  TERMINAL 0 list-popi popnos list-len as width
 
   def row  1
-    terminal' swap pull popnos
+    TERMINAL swap pull popnos
     "" string-concat-list
-    stdout swap println pop
+    println
   end  0
 
   height &row for-range

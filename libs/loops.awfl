@@ -6,47 +6,54 @@ include stack
 
 ## Simplified counting loop
 ```
-def for-range  2
+def for-range  2  # last+1 &func(1)
   as func
   as count_to
+  0 as count
 
-  def next  0
+  def for-range-next  0
     count count_to eq if break  # break criterion
     count dup inc1 up .count    # increment counter
-    .func apply                 # call function
-    next                        # recurse
+    .func apply                 # call function with counter
+    for-range-next              # recurse
   end  ?
 
-  0 as count
-  next    # start loop with zero
+  for-range-next                # start loop from zero
 end  ?
 ```
 assert
-  0 1 2
+  0 1 2  # simple range indices
+  0 1 2 3 4
 from
-  3 &no-op for-range
+  3 &no-op for-range  # from basics
+
+  def X 1
+    dup pop
+  end 1
+
+  5 &X for-range  # 0..4
+  rm X
 end
 
 
-## Numbered "for"-like loop function TODO for start=0 and step=1 short-circuit to for-range
+## Numbered "for"-like loop function
 ```
-def for  3                     # first last+1 step function
-  as func
-  as step
-  as last
-  as first
-  step is-one first is-zero and if (
-    rm step rm first
-    last rm last func rm func for-range break
+def for  3                     # first last+1 step &function
+  as for_func
+  as for_step
+  as for_last
+  as for_first
+  for_step is-one for_first is-zero and if (
+    rm for_step rm for_first
+    for_last for_func for-range break  # use simplified implementation
   )
-  func last step first
-  rm func rm step rm last rm first
+  for_func for_last for_step for_first
   :for                         # F l s f "for"
   :count push                  # F l s {count->first}
   :step push                   # F l {count, step->step}
-  :last push                   # F {count, step,last}
+  :last push                   # F {count, step, last}
   :func push                   # {count, step, last, func}
-  as for_                      # for_ -> {}
+  as for_                      # for_ -> {...}  store struct
 
   def for'  0                  # -
     # first, check if loop has finished
@@ -71,12 +78,13 @@ def for  3                     # first last+1 step function
     rot3                       # {} step count
     +                          # {} count+step
     swap                       # count+step {}
-    :count push                # {}
+    :count push                # {count+1}
     up .for_                   # for_ -> {}
     for'                       # tail recursion
   end  ?
+
   for'                         # start the loop
-end  ?                         # loop could modify the stack
+end  ?                         # function in the loop may modify the stack
 ```
 assert
   256 256
@@ -101,6 +109,7 @@ end
 ## Interruptible for loop with a return value
 ```
 def forbreak  4     # from to step func
+  as func'          # index -> -
   False as stopped  # flag to stop the loop
   nil as returned   # return value
 
@@ -109,12 +118,11 @@ def forbreak  4     # from to step func
     up      .....returned
   end  0
 
-  def each  1             # index
-    stopped if break pop  # ignore this iteration (until last)
-    func' apply           # call the original function
+  def each  1                # index
+    ...stopped if break pop  # ignore this iteration (until last)
+    ...func' apply           # call the original function
   end  0
 
-  as func'          # index -> -
   &each for         # replace call to func by each function
   returned
 end  1              # return value from loop
@@ -123,7 +131,7 @@ assert
   5
 from
   def until5  1
-    5 eq if break 5 break'  # don't compute the remaining iterations
+    5 eq if ( break 5 break' )  # don't compute the remaining iterations
   end  0
   3 9 1 &until5 forbreak
 end

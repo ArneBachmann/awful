@@ -1,4 +1,4 @@
-# Maths #
+# Maths
 ### sqrt, pi
 
 include basicmaths
@@ -28,6 +28,23 @@ assert
   116 231 55
 from
   random_byte random_byte random_byte
+end
+
+
+## Def absolute value
+```
+def abs  1
+  dup 0 lt if ( -1 * break )
+end  1
+```
+assert
+  0 1 2 1/3 2.5
+from
+  0 abs
+  -1 abs
+  2 abs
+  -1 3 / abs
+  2.5 abs
 end
 
 
@@ -132,7 +149,7 @@ def sqrt  2                 # number decimals
   assert
     nil 3 nil 1
   from  # test sqrt(1000)
-    def break' 1 up found end 0
+    dyndef break' 1 up found end 0
     ""   up root
     2    up dotpos  # x10
     1000 up value

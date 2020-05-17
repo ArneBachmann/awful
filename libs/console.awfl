@@ -1,4 +1,4 @@
-# Console I/O #
+# Console I/O
 ### input 1/1
 
 include streams  # so that users can rely on print being available as well
@@ -10,10 +10,10 @@ include strings
 "_stderr" create as :stderr unless error "Could not open stderr"
 
 
-## Get user input from the console ##
+## Get user input from the console
 ```
 def input  1              # prompt
-  stdout swap print pop   # stdout prompt
+  print
   nil as char             #    char -> nil
   "" as result            #    result -> ""
 
@@ -31,17 +31,16 @@ def input  1              # prompt
   end  0
 
   input-loop
-  stdout nl print pop
+  "" println
   result
 end  1
 ```
 
-## Test for user input ##
+## Test for user input
 #assert
 #  :abc
 #from
 #  include streams
 #  stdout "Hello World!" println
-#  pop
 #  "Enter abc: " input
 #end

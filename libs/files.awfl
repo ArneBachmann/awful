@@ -1,4 +1,4 @@
-# File operations #
+# File operations
 ### file-delete 1/1
 
 include streams
@@ -21,13 +21,13 @@ end  1              # exit code
 
 ## TODO Append to file: copy to temp and then add contents
 
-## Tests ##
+## Tests
 assert
   :abc
   0
 from
   "abc.tmp" create
-  :abc print
+  :abc fprint
   close
   pop
 

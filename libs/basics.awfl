@@ -1,5 +1,5 @@
-# Basic definitions #
-### unless 1/, and 2/1, or 2/1, negate 1/1, ne 2/1, gt 2/1, lt 2/1, nand, nor, is-nil 1/1, not-nil, is-neg, is-pos, is-zero
+# Basic definitions
+### unless 1/, inc1 1/1, and 2/1, or 2/1, negate 1/1, ne 2/1, gt 2/1, lt 2/1, nand, nor, is-nil 1/1, not-nil, is-neg, is-pos, is-zero
 
 
 ```
@@ -12,8 +12,16 @@ def inc1  1
   1 +
 end  1
 
-def dec1  1    # TODO "dec" could mean "decimal" as well
+def dec1  1    # TODO "dec" could mean "decimal" as well...
   1 -
+end  1
+
+def inc2  1
+  2 +
+end  1
+
+def dec2  1
+  2 -
 end  1
 
 ```
@@ -64,17 +72,20 @@ end  1
   assert True   from 1   100 ne end
 
 alias gt le not end
-  assert 0    from 0 4 3 le if 1 end
-  assert 0 1  from 0 3 4 le if 1 end
-  assert 0 1  from 0 4 3 gt if 1 end
-  assert 0    from 0 3 4 gt if 1 end
+  assert False from 4 3 le end
+  assert True  from 3 4 le end
+  assert True  from 3 3 le end
+  assert True  from 4 3 gt end
+  assert False from 3 4 gt end
+  assert False from 3 3 gt end
 
 alias lt ge not end
-  assert 1    from   4 3 ge if 1 end
-  assert 0    from 0 3 4 ge if 1 end
-  assert 0    from 0 4 3 lt if 1 end
-  assert 1    from   3 4 lt if 1 end
-  assert 0    from 0 0 0 lt if 1 end
+  assert True  from 3 3 ge end
+  assert True  from 4 3 ge end
+  assert False from 3 4 ge end
+  assert False from 4 3 lt end
+  assert False from 3 3 lt end
+  assert True  from 3 4 lt end
 
 
 ### Exclusive bitwise or operation

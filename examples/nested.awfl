@@ -1,0 +1,31 @@
+# This test case show-cases nested for loops
+
+include lists
+include loops
+
+
+dyndef inn1  1
+  lout swap list-append
+  lout list-concat  # old::i::old
+  up .lout
+end  0
+
+dyndef out1  1          # upper_bound+1
+  list-create as lout
+  -2 swap 1 &inn1 for  # -2:i:1
+  lall lout list-append up lall
+end  0
+
+assert
+  [
+    [ -2 ]
+    [ -2 -1 -2 ]
+    [ -2 -1 -2 0 -2 -1 -2 ]
+    [ -2 -1 -2 0 -2 -1 -2 1 -2 -1 -2 0 -2 -1 -2 ]  # TODO doesn't work, leaves garbage on stack and unfinished list
+    [ -2 -1 -2 0 -2 -1 -2 1 -2 -1 -2 0 -2 -1 -2 2 -2 -1 -2 0 -2 -1 -2 1 -2 -1 -2 0 -2 -1 -2 ]
+  ]
+from
+  list-create as lall
+  -1 4 1 &out1 for
+  lall
+end

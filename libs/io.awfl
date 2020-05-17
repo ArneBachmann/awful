@@ -1,4 +1,4 @@
-# I/O modules #
+# I/O modules
 ### This meta-module includes everything related to I/O
 
 include console

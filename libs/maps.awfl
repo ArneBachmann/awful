@@ -1,4 +1,4 @@
-# Associative mappings #
+# Associative mappings
 ### map-create, map-set, map-contains, map-get
 
 include basicmaths
@@ -11,7 +11,7 @@ alias map-values' :values end
 ```
 
 
-## Create an empty map ##
+## Create an empty map
 ```
 def map-create  0
   6 nil :type pushi
@@ -27,22 +27,22 @@ from
 end
 
 
-## Add one key-value pair ##
+## Add one key-value pair
 ```
 def map-set  3              # map k v
   as value                  # map k   value -> v
   as key                    # map   key -> k
-  as map                    #   map -> map
-  map.keys key list-find    # index|nil
+  as map'                   #   map -> map
+  map'.keys key list-find   # index|nil
   as index                  #   index -> index
   unless break (            # (not found)
-    map.keys key list-append up map.keys
-    map.values value list-append up map.values
-    map
+    map'.keys key list-append up map'.keys
+    map'.values value list-append up map'.values
+    map'
   )  # store new and break
-  key   map.keys   index push up map.keys
-  value map.values index push up map.values
-  map
+  key   map'.keys   index push up map'.keys
+  value map'.values index push up map'.values
+  map'
 end  1
 ```
 assert
@@ -68,7 +68,7 @@ from
 end
 
 
-## Check containment ##
+## Check containment
 ```
 def map-contains  2     # map value
   list-find             # bool index|nil
@@ -83,15 +83,15 @@ from
 end
 
 
-## Get value from map ##
+## Get value from map
 ```
 def map-get  2          # map key
   as key
-  as map
-  map.keys key list-find
+  as map'
+  map'.keys key list-find
   as index
   unless error "Element not in map"
-  map.values index pull
+  map'.values index pull
   popnos
 end  1                  # value
 ```

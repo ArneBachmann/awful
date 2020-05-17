@@ -1,10 +1,10 @@
-# Data structures and types #
+# Data structures and types
 ### as-number, as-string, chr, ord
 
 include stack
 
 
-## Convert string into number ##
+## Convert string into number
 def as-number  1
   :type pull 2 eq if break    # nothing to do for numbers
   :type pull 3 eq unless error "as-number requires a string"
@@ -15,11 +15,11 @@ end  1
   assert True :ERROR from True as-number end
 
 
-## Convert number into string ##
+## Convert number into string
 def as-string  1
   :type pull 3 eq if break    # nothing to do for strings
   :type pull 2 eq unless error "as-string requires a number"
-  3 swap :type pushi
+  3 swap :type pushi  # internal type modification to string
 end  1
   assert "34.56" from "34.56" as-string end
   assert :864/25 from 34.56 as-string end
@@ -27,7 +27,7 @@ end  1
   assert "7/8" from 7 8 // popnos as-string end
 
 
-## Convert codepoint integer into string character ##
+## Convert codepoint integer into string character
 def chr  1
   "" 0 pushi          # put the ord from TOS into an empty string
   1 swap :num pushi   # set the string length to one
@@ -36,7 +36,7 @@ end  1
   assert :A  from 65 chr end
 
 
-## Convert string character into code point integer ##
+## Convert string character into code point integer
 def ord  1
   0 pull    # assume single-character string
   popnos
@@ -46,7 +46,7 @@ end  1
   assert 66 from "BCD" ord end
 
 
-## Tests ##
+## Tests
 assert
   7 67 2 "5"
 from

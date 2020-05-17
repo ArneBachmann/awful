@@ -1,39 +1,39 @@
-# Test the interpreter's built-ins #
+# Test the interpreter's built-ins
 
 
-## Test empty assert body ##
+## Test empty assert body
 assert from 1 pop end
 
 
-## Test strings ##
+## Test strings
 assert "Hello" from "Hello" end
 assert "Hello world!" from "Hello world!" end
 assert "Hello \"world\"!" from "Hello \"world\"!" end
 assert " Hello" from " Hello" end
 
 
-## Test comparisons ##
+## Test comparisons
 assert True      from nil nil eq end
 assert False     from nil 0 eq end
 assert 2  1      from 1 2 1 nib end
 assert 1 :x 2 3  from 1 2 3 :x 2 bin end  # push :x two positions to down the stack
-assert ERROR      from 1 [ 1 ] le end
+assert ERROR     from 1 [ 1 ] le end
 assert ERROR     from 1 [ 1 ] ge end
 
 
-## Test binary functions ##
-assert 8 from 123 12 band end
+## Test binary functions
+assert 8   from 123 12 band end
 assert 127 from 123 12 bor end
 assert 119 from 123 12 bxor end
 
 
-## Test maths functions ##
+## Test maths functions
 assert 1  1.5    from 3 2 // end
 assert 34.567    from 34.3 0.267 + end
 assert ""        from "" end  # test empty string
 
 
-## Test nested functions ##
+## Test nested functions
 assert
   3
 from
@@ -47,8 +47,8 @@ from
 end
 
 
-## Test variable and outer scope ##
-def _var_test  0
+## Test variable and outer scope
+dyndef _var_test  0
   1 as a        # defines local a
   a .x + up .x  # updates x
   2 a +         # increases a
@@ -58,17 +58,17 @@ end  1
 rm :_var_test   # undef function (as we are in global scope here!)
 
 
-## Literal lists ##
+## Literal lists
 assert [ ] from [ ] end
 assert [ 1 ] from [ 1 ] end
 assert [ :x [ 1 2 ] ] from [ :x [ 1 2 ] ] end
 assert [ :x [ ] ] from [ :x [ ] ] end
 
 
-## Test conditional break block ##
+## Test conditional break block
 assert
 from
-  def a  1
+  dyndef a  1       # bool
     if break 1 [ 2 ] 3
     -1 -2 -3
   end  3
@@ -77,7 +77,7 @@ from
 end
 
 
-## Test nested variable access ##
+## Test nested variable access
 assert
   :test :sub!
 from
@@ -87,7 +87,7 @@ from
 end
 
 
-## Test grouping ##
+## Test grouping
 assert
   4
 from
@@ -102,7 +102,7 @@ from
 end
 
 
-## Test function references on the stack ##
+## Test function references on the stack
 assert
   3
 from
@@ -152,4 +152,22 @@ from
     :x2
   end  1
   bfunc
+end
+
+
+## Test scope
+assert
+  3
+from
+  dyndef a  0
+    2 as outer
+
+    dyndef b  0  # TODO cannot be def here, as it would be stored in the statics table and collide with variable definition b, e.g. in lists.awfl
+      outer 1 +
+    end  1
+
+    b
+    rm :b  # this isn't be necessary in an assert
+  end  1
+  a
 end

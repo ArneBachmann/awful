@@ -1,8 +1,13 @@
-''' AWFUL: Arguably's Worst F*cked-Up Language. '''
+''' AWFUL: Arguably's Worst F*cked-Up Language.
+    Copyright (c) 2020 Arne Bachmann.
+'''
 
 import copy, decimal, doctest, fractions, os, sys, time
+assert sys.version_info >= (3, 5)
 from functools import reduce
 
+
+VERSION = "0.5"
 
 # Reserved language words and operators
 EOL, TAIL_RECURSION = '__EOL__', '__TAILR__'
@@ -12,10 +17,10 @@ ESCAPE, SPACE = '\\"', ' '
 NUMERICS = PLUS, MINUS, TIMES, DIVMOD = '+', '-', '*', '//'
 BITWISE = BAND, BOR, BXOR = 'band', 'bor', 'bxor'
 GROUPING = GROUP, ENDGROUP = '(', ')'
-LISTS = NEWLIST, ENDLIST = '[', ']'
+LISTS = NEWLIST, DYNLIST, ENDLIST = '[', '![', ']'
 TRUTH = TRUE, FALSE = 'True', 'False'
 STACKOPS = NIB, BIN, POP, DUP = 'nib', 'bin', 'pop', 'dup'  # basic stack operations
-FUNCTIONS = ALIAS, APPLY, DEF, END = 'alias', 'apply', 'def', 'end'
+FUNCTIONS = ALIAS, APPLY, DEF, DYNDEF, END = 'alias', 'apply', 'def', 'dyndef', 'end'
 CONDITIONAL = NOT, IF, EQ = 'not', 'if', 'eq'
 ORDERED = LE, GE = 'le', 'ge'
 VARIABLES = AS, UP, RM = 'as', 'up', 'rm'
@@ -26,21 +31,27 @@ INTERRUPTS = BREAK, ERROR = 'break', 'error'
 TESTING = ASSERT, FROM = 'assert', 'from'
 INTERACTIVE = DEBUG, IGNORE, ON, OFF, THIS = 'debug', 'ignore', 'on', 'off', 'this'
 SOURCE = LIBS, INCLUDE, WORDS = 'libs', 'include', 'words'
-RESERVED = set(reduce(lambda a, b: a + (list(b) if isinstance(b, tuple) else [b]), (NIL, SYMBOLS, NUMERICS, GROUPING, LISTS, TRUTH,
+RESERVED_KEYWORDS = set(reduce(lambda a, b: a + (list(b) if isinstance(b, tuple) else [b]), (NIL, SYMBOLS, NUMERICS, GROUPING, LISTS, TRUTH,
     STACKOPS, FUNCTIONS, CONDITIONAL, ORDERED, VARIABLES, STRUCTURES, FILES, STREAMS, INTERRUPTS, TESTING, INTERACTIVE, SOURCE), []))
-DEFS = {ALIAS: END, ASSERT: FROM, DEF: END, FROM: END, GROUP: ENDGROUP, NEWLIST: ENDLIST, ERROR: EOL, BREAK: EOL}  # tokens that open and close a sublist in the token string
-NAMEDEFS = {k: v for k, v in DEFS.items() if k in (ALIAS, DEF)}  # the ones with a name following
+DEFS = {ALIAS: END, ASSERT: FROM, DEF: END, DYNDEF: END, FROM: END, GROUP: ENDGROUP, NEWLIST: ENDLIST, ERROR: EOL, BREAK: EOL}  # tokens that open and close a sublist in the token string
+NAMEDEFS = {k: v for k, v in DEFS.items() if k in (ALIAS, DEF, DYNDEF)}  # the ones with a name following
 
 # Further constants
 INDENT_N = 2  # spaces per indentation step
 INDENT = SPACE * INDENT_N
 TYPE, NUM, NONE = 'type', 'num', None  # reserved fields in internal data representation
 TYPES = FILE, CODE, NILT, BOOL, NUMBER, STRING, LIST, FUNC = -2, -1, 0, 1, 2, 3, 4, 5  # of internal presentation dict[TYPE]
-# standard library: 6 = maps, 7 = sets
+# type identifiers used in the standard library: 6 = maps, 7 = sets
 
 
 class ParsingError(Exception): pass
 class RuntimeViolation(Exception): pass
+
+class Queue(list):
+  def __init__(_, size = 15): list.__init__(_); _.size = size
+  def append(_, elem):
+    list.append(_, elem)
+    if len(_) > _.size: _.pop(0)
 
 
 class TokenIter(object):
@@ -50,6 +61,7 @@ class TokenIter(object):
   def insertAlias(_, alias): _.alias = alias + _.alias  # prepend tokens
 
 
+# Interactive input for stdin reading
 try:  # from https://gist.github.com/payne92/11090057
   import msvcrt
   getch = msvcrt.getch
@@ -86,10 +98,10 @@ def parseNumber(s):
       Allowed formats: 1 -1. .1 0.1 -1.2 1e2 2/-3 (integers, fractions, decimals)
   >>> repr(parseNumber("1"))
   '1'
-  >>> repr(parseNumber("1.5"))
-  'Fraction(3, 2)'
   >>> repr(parseNumber("1/5"))
   'Fraction(1, 5)'
+  >>> repr(parseNumber("1.5"))
+  'Fraction(3, 2)'
   '''
   assert isinstance(s, str)
   try: value = int(s)  # attempt to treat most numbers as integers
@@ -157,8 +169,8 @@ def makeFile(file, read):
   ''' Create a open stream.
   >>> print(sys.stderr is makeFile("_stderr", False)[NONE])
   True
-  >>> fd = makeFile("awfl.py", True); print(fd[NONE].name)
-  awfl.py
+  >>> fd = makeFile(os.path.dirname(os.path.abspath(__file__)) + os.sep + "awfl.py", read = True); print(fd[NONE].name.endswith("awfl.py"))
+  True
   '''
   return {'type': FILE, 'read': read, NONE: {STDIN: lambda: sys.stdin, STDOUT: lambda: sys.stdout, STDERR: lambda: sys.stderr}.get(file, lambda: open(file, 'rb' if read else 'wb'))()}
 
@@ -166,30 +178,31 @@ def makeFile(file, read):
 def getType(dikt):
   ''' Determine type of internal representation.
 
-  >>> getType({'type': 0})
+  >>> getType({'type': 0})  # nil
   0
   >>> getType({'type': 1, '0': -1})  # a bool
   1
-  >>> getBool({'type': 1, '0': -1})  # a bool
+  >>> getBool({'type': 1, '0': -1})
   True
+  >>> getBool({'type': 1, '0': 0})
+  False
   >>> getType({'type': 2, 'num': 2, '0': 49, '1': 50})  # a number
   2
-  >>> getNumber({'type': 2, 'num': 2, '0': 49, '1': 50})  # a number
+  >>> getNumber({'type': 2, 'num': 2, '0': 49, '1': 50})
   12
   >>> getType({'type': 3, 'num': 1, '0': 55})  # a string
   3
-  >>> getString({'type': 3, 'num': 1, '0': 55})  # a string
+  >>> getString({'type': 3, 'num': 1, '0': 55})
   '7'
   >>> getType({'type': 4, 'num': 0})  # a list
   4
-  >>> getList({'type': 4, 'num': 0})  # a list
+  >>> getList({'type': 4, 'num': 0})
   []
   >>> getType({'type': 5, 'num': 1, '0': 55})  # a function reference
   5
   '''
-#  if isinstance(dikt, list): return LIST
   if isinstance(dikt, list): return LIST
-  if isinstance(dikt, int): return CODE
+  if isinstance(dikt, int):  return CODE
   assert isinstance(dikt, dict), "getList with data type %s" % type(dikt)
   assert TYPE in dikt
   assert dikt[TYPE] in TYPES
@@ -206,7 +219,8 @@ def getString(dikt, allowed_types = (STRING,)):
   abc
   '''
   assert getType(dikt) in allowed_types
-  return "".join([chr(dikt[str(i)]) for i in range(int(dikt[NUM]))])
+  #assert all([isinstance(dikt[str(i)], int) for i in range(int(dikt[NUM]))]), dikt  # strings should not be nested - but could be if constructed from list-concat of code point integers
+  return "".join([chr(getNumber(dikt[str(i)]) if isinstance(dikt[str(i)], dict) else dikt[str(i)]) for i in range(int(dikt[NUM]))])  # TODO when is char codepoint ever encoded as a dict?
 
 def getNumber(dikt):
   ''' Convert internal representation back into a number.
@@ -267,6 +281,8 @@ def internalAsString(e, indent = 0, prefix = ""):
   ]
   >>> print(internalAsString({'type': 5, 'num': 1, '0': 97}))
   &a
+  >>> print(internalAsString({'type': 3, 'num': 1, '0': 97}))
+  :a
   '''
   i = INDENT * indent; j = i + INDENT; p = (i if not prefix else "")  # first and second level indentation
   assert isinstance(e, int) or (isinstance(e, dict) and TYPE in e), "wrong type %r" % e  # int and list = internal dict values
@@ -278,7 +294,7 @@ def internalAsString(e, indent = 0, prefix = ""):
   elif tipe == FILE: value = p + QUOTE + {sys.stdin: lambda: STDIN, sys.stdout: lambda: STDOUT, sys.stderr: lambda: STDERR}.get(e[NONE], lambda: e[NONE].name)() + QUOTE
   elif tipe in (NUMBER, STRING):
     assert NUM in e
-    value = p + (str(getNumber(e)) if tipe == NUMBER else ((QUOTE + getString(e) + QUOTE) if e[NUM] > 1 else (SYMBOL + getString(e) if e[NUM] > 0 else QUOTE * 2)))
+    value = p + (str(getNumber(e)) if tipe == NUMBER else ((QUOTE + getString(e) + QUOTE) if e[NUM] > 1 and not (e[NUM] == 1 and e[0] == ord(' ')) else (SYMBOL + getString(e) if e[NUM] > 0 else QUOTE * 2)))
   else: value = ""
   try: keys = set(([TYPE, NONE] if TYPE in e and e[TYPE] in TYPES else []) + ([str(n) for n in range(e[NUM])] + ([NUM] if tipe in TYPES else []) if NUM in e else (['0'] if tipe == BOOL else [])))  # expected keys
   except TypeError as E: raise RuntimeViolation("did you use push instead of pushi? %r" % E)
@@ -293,8 +309,8 @@ def internalAsString(e, indent = 0, prefix = ""):
     value += "\n%s}" % i if len(keys) > 1 else " }"  # closing brace
   return value
 
-def stackStr(stack):
-  return (("<\n" if len(stack) > 1 else "<") + "\n".join([internalAsString(_, 0 if len(stack) == 1 else 1) for _ in stack]) + ("\n>" if len(stack) > 1 else ">")) if len(stack) > 0 else "< >"
+def stackStr(stack, sep = "\n"):
+  return (("<%s" % sep if len(stack) > 1 else "<") + sep.join([internalAsString(_, 0 if len(stack) == 1 else 1) for _ in stack]) + ("%s>" % sep if len(stack) > 1 else ">")) if len(stack) > 0 else "< >"
 
 def _namespaceStr(namespace):
   return ",\n".join(["%s%s -> %s" % (2 * INDENT, k, REF + v.name if callable(v) else internalAsString(v, 1)) for k, v in sorted(namespace.items())])
@@ -305,18 +321,29 @@ def namespaceStr(namespaces):
 
 ## Working with nested variables
 def variableTraversal(inDict, key):
+  ''' Traverse down a sub-variable path
+      inDict: heap or parent variable
+      key: full or remaining key
+  >>> list(variableTraversal({'a': {'b': {'c': {'type': 0}}}}, 'a.b.c'))
+  [({'a': {'b': {'c': {'type': 0}}}}, 'a'), ({'b': {'c': {'type': 0}}}, 'b'), ({'c': {'type': 0}}, 'c')]
+  >>> list(variableTraversal({}, ''))
+  []
+  '''
   while DOT in key:
     i = key.index(DOT)  # from left
     prefix, remainder = key[:i], key[i + 1:]
     yield inDict, prefix
     inDict, key = inDict[prefix], remainder
   while key.endswith(DOT): key = key[:-1]  # remove trailing dots
-  if key == '': return
+  if key == '': return  # exit generator
   yield inDict, key
 
 def storeVariable(inDict, key, value, update = False, original = None):
   ''' Store or update a potentially nested variable.
       inDict: namespace or variable with nested structures
+      key: variable name or path
+      value: data structure to store
+      original: original path
   >>> ns = {}; storeVariable(ns, "a.b", {"type": 3, "0": 97, "num": 1}, original = "..a.b"); orderedDictRepresentation(ns)
   "[('a', [('b', [('0', 97), ('num', 1), ('type', 3)])])]"
   >>> storeVariable(ns, "a.b", {"type": 3, "0": 98, "num": 1}, update = True); orderedDictRepresentation(ns)
@@ -329,23 +356,30 @@ def storeVariable(inDict, key, value, update = False, original = None):
   assert isinstance(inDict, dict), "storeVariable not on namespace %r" % inDict
   assert isinstance(key,    str),  "storeVariable with wrong key type %r" % key
   assert isinstance(value,  dict), "storeVariable with wrong value type %r" % value
+  if key in statics and not sut: raise RuntimeViolation("variable name %r already defined as static function" % key)  # redefinitions only allowed inside assert from block
   for inDict, prefix in variableTraversal(inDict, key):
     try:
       if prefix not in inDict:
         if update: raise RuntimeViolation("variable element %r not defined for %r" % (prefix, original if original else key))
         inDict[prefix] = {}
-      elif not update: raise RuntimeViolation("variable element %r already defined for %r" % (prefix, original if original else key))
+      elif not update and not sut: raise RuntimeViolation("variable element %r already defined for %r" % (prefix, original if original else key))
     except TypeError: import pdb; pdb.set_trace()
   if debug: print("%s %s -> %s" % ("VARUP" if update else "VARDF", key, internalAsString(value)))
   inDict[prefix] = value
 
+#def updateVariable(inDict, key, value, original = None): storeVariable(inDict, key, value, update = True, original = original)
+
 def getVariable(inDict, key, remove = False):
-  ''' Return potentially nested variable. '''
+  ''' Return potentially nested variable.
+  >>> getVariable({'a': {'b': {"type": 3, "0": 97, "num": 1}}}, 'a.b')
+  {'type': 3, '0': 97, 'num': 1}
+  >>> getVariable({'a': {'b': {"type": 0}}}, 'a.b')
+  {'type': 0}
+  '''
   assert isinstance(inDict, dict)
   assert isinstance(key, str)
   for inDict, prefix in variableTraversal(inDict, key):
     if prefix not in inDict: raise RuntimeViolation("variable element %r not found for %r" % (prefix, key))
-  if prefix not in inDict: raise RuntimeViolation("variable element %r not found for %r" % (prefix, key))
   if remove:
     if debug: print("VARRM %s" % key)
     del inDict[prefix]
@@ -353,6 +387,48 @@ def getVariable(inDict, key, remove = False):
     if isinstance(inDict[prefix], int): return makeNumber(inDict[prefix])
     if inDict[prefix].get(TYPE, -999) == FILE: return inDict[prefix]
     return copy.deepcopy(inDict[prefix])
+
+def rmVariable(inDict, key):
+  ''' Remove variable from heap or parent variable.
+  >>> a = {'a': {'b': {'type':0 }, 'c': {'type': 1, '0': -1}}}
+  >>> rmVariable(a, 'a.b')
+  >>> a
+  {'a': {'c': {'type': 1, '0': -1}}}
+  '''
+  getVariable(inDict, key, remove = True)
+
+def compileFunction(op, name, inputs, block, outputs):
+  ''' Compile an Awful function to a Python callable. '''
+  if any([name in namespace for namespace in namespaces]): raise RuntimeViolation("%s %s already defined" % (op, name))
+  while block and block[-1] is EOL or block[-1][0] == COMMENT: block.pop()  # remove unused tokens that prevent recognizing tail recursion
+  if block and block[-1] == name: block[-1] = TAIL_RECURSION  # mark function as tail recursive
+
+  def func(code, inputs, outputs):
+    def inner(tokens, namespaces, stack):
+      if debug: print("FUNCT %r" % name)
+      if (debug or warn) and displayCallstack: print("CALLS %s.%s" % (".".join(callstack), name))
+      global calls; calls += 1
+      before = len(stack)
+      if inputs > before: raise RuntimeViolation("function %s requires %d input arguments" % (name, inputs))
+      try:
+        namespaces.append({})  # create local namespace
+        callstack.append(name)
+        while True:  # potential tail-recursion loop
+          error = interpret(TokenIter(code), namespaces, stack)  # run function code in its own namespace
+          if error is TAIL_RECURSION:
+            if debug: print("TAILR")
+            continue  # run function again
+          break
+      except AssertionError as E: error = "%s: %r" % (".".join(callstack), str(E))  # affects unit test or pre-/post-conditions
+      finally: namespaces.pop(); callstack.pop()
+      if debug: print("ENDFN %r" % name) #  ; print("STACK " + stackStr(stack))
+      if error: return error  # or break
+      if outputs != UNKNOWN:  # check post-condition
+        difference = len(stack) - (before - inputs + int(outputs))
+        if difference != 0: raise RuntimeViolation("function %r stack size discrepancy %d" % (".".join(callstack + [name]), difference))
+        return
+    return inner  # applies function code body
+  return func(block, inputs, outputs)
 
 
 
@@ -363,8 +439,8 @@ def interpret(tokens, namespaces, stack, breaker = None):
   try:
     while True:
       retval = evaluate(tokens, namespaces, stack)  # runs one operation that potentially consumes more than one token
-      if retval is BREAK: return breaker  # stop processing current block, and optionally return BREAK signal to outer caller (only != None inside a group)
-      if retval: return retval  # only cases are BREAK, TAIL_RECURSION and error message (or None for OK)
+      if retval is BREAK: return breaker  # stop processing current block, and optionally return BREAK signal to outer caller (is None only outside a group)
+      if retval:          return retval  # only cases are BREAK, TAIL_RECURSION and error message (or None for OK)
   except StopIteration: pass  # end of token stream reached
 
 def evaluate(tokens, namespaces, stack):
@@ -375,20 +451,21 @@ def evaluate(tokens, namespaces, stack):
       returns BREAK to stop evaluating the current function (and not only current group)
       returns TAIL_RECURSION, passed on to caller by interpret() to let inner() know that the execution needs to be repeated/continued
   '''
-  global counter, debug
+  global counter, debug, statics, lastCalls, lastStacks
   counter += 1
-  token = next(tokens)  # raises StopIteration exception when stream is depleted -> captured by interpret()
+  token = next(tokens)  # raises StopIteration exception when stream is depleted -> captured by interpret() above
+  lastCalls.append(token); lastStacks.append(stack)
   assert isinstance(token, str)  # the tokenizer and parser ensure that each string has at least one character
 
   if token in (EOL, TAIL_RECURSION): return None if token is EOL else TAIL_RECURSION
 
+  if displayNamespaces: print(namespaceStr(namespaces[-2:]))
   if debug:
     if debug == THIS: debug = False  # reset flag after printout
-    if '--words' in sys.argv: print(namespaceStr(namespaces[-2:]))
-    print("STACK " + stackStr(stack))
+    if token[0] != COMMENT: print("STACK " + stackStr(stack))
     print("TOKEN %s" % ({EOL: "EOL", TAIL_RECURSION: "TAILR"}.get(token, repr(token))))
 
-  if token[0] == COMMENT: return  # comments are part of the token stream unless in optimized mode
+  if token[0] == COMMENT: return  # comments are part of the token stream except in optimized mode
   if token == NIL: stack.append(fromLiteral(token)); return  # store nil singleton
   if token in TRUTH: stack.append(fromLiteral(token)); return  # boolean found
   if token.startswith(REF): stack.append(fromLiteral(token)); return  # put function reference on TOS (no namespace information contained!)
@@ -397,7 +474,7 @@ def evaluate(tokens, namespaces, stack):
   if token in aliases: tokens.insertAlias(aliases[token]); return  # alias found
 
   if token == WORDS:  # lists known words in REPL
-    import termwidth, textwrap
+    import termwidth, textwrap  # these imports are only required in the REPL when using 'words'
     for namespace in namespaces: print("\n".join(textwrap.wrap(", ".join(sorted(namespace)), termwidth.getTermWidth().columns - 1, initial_indent = "- "))); return
 
   if token == SYSTEM:  # "command" "input"|nil -> stdout, stderr, exitcode
@@ -442,19 +519,23 @@ def evaluate(tokens, namespaces, stack):
     if token == ERROR:
       message = _next.pop(0)
       retval = interpret(TokenIter(_next), namespaces, stack)  # cleanup operations
-      if debug: print("ERROR %s %r" % (message, retval))
+      if debug: print("ERROR %s returned %r" % (message, retval))
       raise RuntimeViolation("%s %r " % (message, retval) + stackStr(stack))  # notify interpret() about the error
 
   if token in VARIABLES:
     name = next(tokens)
+    if debug and token != AS: print("NAME " + name)
     if token != RM and not stack: raise RuntimeViolation("%s without data on stack" % token)
     count, _name = -1, name  # remember original name for reporting
     name = name[1:] if name[0] == SYMBOL else name  # if written as symbol, ignore colon
     while name[0] == DOT: count -= 1; name = name[1:]  # find determine parent namespace
     if -count > len(namespaces): raise RuntimeViolation("too many parent indirections in variable name %r" % _name)
-    if token == RM: getVariable(namespaces[count], name, remove = True); return
+    if token == RM: rmVariable(namespaces[count], name); return
     value, prefix = stack.pop(), name if DOT not in name else name[:name.index(DOT)]  # get internal dict representation
-    while token == UP and -count < len(namespaces) and (prefix not in namespaces[count] or callable(namespaces[count][prefix])): count -= 1  # find namespace with variable to update
+    while token == UP and -count < len(namespaces) and (prefix not in namespaces[count] or callable(namespaces[count][prefix])): count -= 1  # find namespace with variable to update (ignoring functions of same name)
+    if warn and token == AS:
+      if any([name in namespace for namespace in namespaces[count-1:-len(namespaces):-1]]): print("WARN %s %s already exists in outer namespace" % (token, name))  # root-wise/deeper/global
+      if any([name in namespace for namespace in namespaces[count+1:len(namespaces)]]):     print("WARN %s %s already exists in inner namespace" % (token, name))  # leaf-wise/higher/local
     storeVariable(namespaces[count], name, value, update = token == UP, original = _name)
     return
 
@@ -470,8 +551,8 @@ def evaluate(tokens, namespaces, stack):
     if token == PULL:
       while len(path) > 0:
         step = path.pop(0)
-        if step in RESERVED: raise RuntimeViolation("%s using reserved symbol %r" % (token, symbol))
-        if step not in parent: raise RuntimeViolation("%s key %s not contained in structure on stack" % (token, symbol))
+        if step in RESERVED_KEYWORDS: raise RuntimeViolation("%s using reserved symbol %r" % (token, symbol))
+        if step not in parent: raise RuntimeViolation("%s key %s not contained in structure on stack %s" % (token, symbol, stackStr(stack, sep = " ")))
         parent = parent[step]
       stack.append(makeNumber(parent) if isinstance(parent, int) else parent)  # copy found datum to TOS
       return
@@ -515,7 +596,7 @@ def evaluate(tokens, namespaces, stack):
     if token == IF:
       if not getBool(value):
         op = next(tokens)  # if FALSE, don't execute next token (and remove one or two blocks after it for error, assert etc.)
-        if op in DEFS: next(tokens)
+        if op in DEFS:   next(tokens)
         if op == ASSERT: next(tokens)
       return
 
@@ -549,12 +630,12 @@ def evaluate(tokens, namespaces, stack):
         if   isinstance(a, fractions.Fraction) and isinstance(b, int): b = fractions.Fraction(b)
         elif isinstance(b, fractions.Fraction) and isinstance(a, int): a = fractions.Fraction(a)
       if token in BITWISE and not (isinstance(a, int) and isinstance(b, int)): raise RuntimeViolation("bit operation %s requires integers %r %r" % (token, a, b))
-      if token == BAND: c = a & b
-      elif token == BOR: c = a | b
-      elif token == BXOR: c = a ^ b
-      elif token == PLUS:   c = a + b
-      elif token == MINUS:  c = a - b
-      elif token == TIMES:  c = a * b
+      if   token == BAND:  c = a & b
+      elif token == BOR:   c = a | b
+      elif token == BXOR:  c = a ^ b
+      elif token == PLUS:  c = a + b
+      elif token == MINUS: c = a - b
+      elif token == TIMES: c = a * b
       elif token == DIVMOD:
         if isinstance(a, int) and isinstance(b, int): a, b = fractions.Fraction(a),  fractions.Fraction(b)
         c = a / b
@@ -566,62 +647,60 @@ def evaluate(tokens, namespaces, stack):
     except (decimal.ConversionSyntax, decimal.DecimalException, decimal.InvalidOperation, ArithmeticError) as E: raise RuntimeViolation(E)
     return
 
-  if token in (DEF, ALIAS):
+  if token == ALIAS:
     block = next(tokens)
     name = block[0]
-    if name in (namespaces[-1] if token == DEF else aliases): raise RuntimeViolation("%s %s already defined%s" % (token, name, " in current namespace" if token == DEF else ""))
-    if token == DEF: inputs, outputs = int(block[1]), next(tokens)  # else alias
-    else: aliases[name] = block[1:]; return  # store alias globally
-    while block and block[-1] is EOL or block[-1][0] == COMMENT: block.pop()  # remove unused tokens that prevent recognizing tail recursion
-    if block and block[-1] == name: block[-1] = TAIL_RECURSION  # mark function as tail recursive
+    if debug: print("NAME " + name)
+    if name in aliases: raise RuntimeViolation("%s %s already defined%s" % (token, name))
+    aliases[name] = block[1:]
+    return
 
-    def func(code, inputs, outputs):
-      def inner(tokens, namespaces, stack):
-        if debug: print("FUNCT %r" % name)
-        global calls; calls += 1
-        before = len(stack)
-        if inputs > before: raise RuntimeViolation("function %s requires %d input arguments" % (name, inputs))
-        try:
-          namespaces.append({})  # create local namespace
-          callstack.append(name)
-          while True:  # potential tail-recursion loop
-            error = interpret(TokenIter(code), namespaces, stack)  # run function code in its own namespace
-            if error is TAIL_RECURSION:
-              if debug: print("TAILR")
-              continue  # run function again
-            if error: print("ERROR in %s: %r" % (".".join(callstack), error))
-            break
-        except AssertionError as E: error = "%s: %r" % (".".join(callstack), str(E))  # affects unit test or pre-/post-conditions
-        finally: namespaces.pop(); callstack.pop()
-        if debug: print("ENDFN %r" % name); print("STACK " + stackStr(stack))
-        if error: return error  # or break
-        if outputs != UNKNOWN:  # check post-condition
-          difference = len(stack) - (before - inputs + int(outputs))
-          if difference != 0: raise RuntimeViolation("function %r stack size discrepancy %d" % (".".join(callstack + [name]), difference))
-          return
-      return inner  # applies function code body
-    namespaces[-1][name] = func(block[2:], inputs, outputs)
-    namespaces[-1][name].name = name  # store function in current namespace
+  if token == DEF:
+    name = next(tokens)  # get static function name
+    if debug: print("NAME " + name)
+    namespaces[-1][name] = statics[name]  # store reference to static function tokens in current namespace
+    namespaces[-1][name].name = name
+    return
+
+  if token == DYNDEF:
+    block = next(tokens)
+    name, inputs, outputs = block[0], int(block[1]), next(tokens)
+    if debug: print("NAME " + name)
+    func = compileFunction(token, name, inputs, block[2:], outputs)
+    namespaces[-1][name] = func  # store function in current namespace
+    namespaces[-1][name].name = name
     return
 
   if token == ASSERT:
     expect, test = next(tokens), next(tokens)  # consume next two blocks
     if optimize: return  # skip running tests
-    isstack, exstack = [], []  # always enable debug output during asserts
+    global sut
+    isstack, exstack, oldstatics, sut = [], [], copy.copy(statics), True  # always enable debug output during asserts
     try: error = interpret(TokenIter(test),   [{k: copy.deepcopy(v) if not callable(v) and v.get(TYPE, -999) != FILE else v for k, v in namespace.items()} for namespace in namespaces], isstack)
     except RuntimeViolation as E: error = str(E)
     if error: isstack.append(makeString("ERROR " + error))
     if debug: print("STWAS " + stackStr(isstack))
+    statics = oldstatics
     try: error = interpret(TokenIter(expect), [{k: copy.deepcopy(v) if not callable(v) and v.get(TYPE, -999) != FILE else v for k, v in namespace.items()} for namespace in namespaces], exstack)
     except RuntimeViolation as E: error = str(E)
     if error: exstack.append(makeString("ERROR " + error))
     if debug: print("STEXP " + stackStr(exstack))
-    try: assert len(isstack) == len(exstack) and all([(
-        str(fromValue(i)).startswith("ERROR") and str(fromValue(e)).startswith("ERROR"))\
-        or str(fromValue(i)) == str(fromValue(e))
-        for i, e in zip(isstack, exstack)]),\
-        "SHOULD %s BUT WAS %s for %s" % (stackStr(exstack), stackStr(isstack), formatCodeBlock(test))
-    except (AssertionError, Exception) as E:
+    statics, sut, E = oldstatics, False, None  # don't keep any compiled functions
+    try:
+      if not(len(isstack) == len(exstack) and all([(
+        (str(fromValue(i)).startswith("ERROR") and str(fromValue(e)).startswith("ERROR"))) or (str(fromValue(i)) == str(fromValue(e)))
+        for i, e in zip(isstack, exstack)])
+      ):
+        E = "SHOULD %s(%d) BUT WAS %s(%d) for %s %s\nTOKENS:\n- %s\nSTACKS:\n- %s" % (
+            stackStr(exstack), len(exstack),
+            stackStr(isstack), len(isstack),
+            formatCodeBlock(test),
+            ".".join(callstack),
+            "\n- ".join(lastCalls) if displayFifo else "",
+            "\n- ".join([stackStr(s, sep = " ") for s in lastStacks]) if displayFifo else ""
+          )
+    except Exception as E: pass
+    if E:
       try: print("FAILD %s in %s" % (E, test) + "\nSTWAS " + stackStr(isstack) + repr(isstack))
       except: print("ERROR %r" % test)
       if '--interactive' in sys.argv: import pdb; pdb.set_trace()
@@ -633,14 +712,16 @@ def evaluate(tokens, namespaces, stack):
 
   if token == NEWLIST: stack.append(fromLiteral(next(tokens))); return  # literal list
 
+#  if token == DYNLIST: lizt = next(tokens); stack.append(lizt); return
+
   try: stack.append(fromLiteral(token)); return  # attempt to interpret as a number
   except ParsingError as E: pass
 
   # variable references and functions
   if token == APPLY:
-    if not stack: raise RuntimeViolation("%s requires one function reference on the stack" % token)
+    if not stack: raise RuntimeViolation("%s requires one function reference on the stack %s" % (token, stackStr(stack, sep = " ")))
     func = stack.pop()
-    if getType(func) != FUNC: raise RuntimeViolation("apply requires one function reference on stack")
+    if getType(func) != FUNC: raise RuntimeViolation("apply requires one function reference on stack " + stackStr(stack, sep = " "))
     token = getString(func, allowed_types = (FUNC,))
 
   count = 1
@@ -675,30 +756,31 @@ def fromLiteral(token):
   "[('0', [('0', 49), ('num', 1), ('type', 2)]), ('1', [('0', -1), ('type', 1)]), ('num', 2), ('type', 4)]"
   '''
   if isinstance(token, list): return makeList([fromLiteral(_) for _ in token if _ != NEWLIST])  # ignore [ since following list always treated right
-  if token == NIL: return {TYPE: NILT}  # create a new object on every call to allow subsequent modification (e.g. in map-create)
-  if token in TRUTH: return makeBool(token == TRUE)
-  if token[0] == QUOTE: return makeString(token[1:-1])
+  if token    == NIL:    return {TYPE: NILT}  # create a new object on every call to allow subsequent modification (e.g. in map-create)
+  if token    in TRUTH:  return makeBool(token == TRUE)
+  if token[0] == QUOTE:  return makeString(token[1:-1])
   if token[0] == SYMBOL: return makeString(token[1:])
-  if token[0] == REF: return makeReference(token[1:])
+  if token[0] == REF:    return makeReference(token[1:])
   return makeNumber(parseNumber(token))
 
 
-def parseFile(file, tokens, i = -1, until = END, comments = True):
-  ''' Combine the tokens and perform syntax checks. Return a list of tokens and further nested lists, and the token counter. '''
+def parseFile(file, tokens, i = -1, until = END, untilBefore = None, comments = True):
+  ''' Combine the tokens and perform syntax checks. Return a list of tokens and further nested lists, and the (next) token counter. '''
   def Error(message, kwargs): raise ParsingError((message + " in file {file} on line {l}").format(**kwargs))  # reused exception
   n, t, x = len(tokens), [], None
   while True:
     i += 1
     if i >= n: break
     l, x = tokens[i]
-    if '--tokens' in sys.argv: print("%15s %4d %s" % (file.replace(".awfl", ""), l, x))
-    if x == until: break  # end inner list (def, alias, from) or block (error, break), itself not added to tokens. must come before next case:
+    if displayTokens: print("%15s %4d %s" % (file.replace(".awfl", ""), l, x))
+    if   x == until: break  # end inner list (def, alias, from) or block (error, break), itself not added to tokens. must come before next case:
+    elif x == untilBefore: i -= 1; break
     if x.startswith(until): Error("{x} looks like a syntax error (missing space?)", vars())
     elif x is EOL: continue  # not needed, because error and break blocks will be constructed as lists until end of line
     if x[0] == COMMENT:
       comment = x
       while tokens[i + 1][1] is not EOL: i += 1; comment += SPACE + tokens[i][1]
-      if comments and not optimize: t.extend([comment, EOL])  # use --optimize to remove comments (displayed only in debug mode)
+      if comments: t.extend([comment] if not optimize else [] + [EOL])
     elif x[0] in (DOT, REF, SYMBOL):
       if len(x.replace(DOT, "").replace(REF, "").replace(SYMBOL, "")) < 1: Error("%s {x} syntax error" % {DOT: "parent variable reference", REF: "reference", SYMBOL: "symbol"}[x[0]], vars())
       t.append(x)
@@ -707,39 +789,43 @@ def parseFile(file, tokens, i = -1, until = END, comments = True):
       while quote == ['"'] or quote[-1].endswith(ESCAPE) or not quote[-1].endswith(QUOTE): quote.append("\n" if tokens[i + 1][1] is EOL else (SPACE + tokens[i + 1][1])); i += 1
       t.append("".join(quote).replace(ESCAPE, QUOTE))  # add including quotes but un-escape inner quotes
     elif x == INCLUDE:
+      if displayTokens: print("%15s %4d %s" % ("", l, tokens[i+1][1]))
       insert = include(tokens[i + 1][1], file, l)
-      tokens = tokens[:i + 2] + insert + tokens[i + 2:]  # extend unparsed token stream by included file's tokens
-      i += 1; n += len(insert)
+      tokens = tokens[:i] + insert + [(l, "# EOI %s" % tokens[i+1][1])] + tokens[i + 2:]  # extend unparsed token stream by included file's tokens
+      i -= 1; n += len(insert) - 1  # removed 2 tokens, but inserted 1 comment
     elif x in VARIABLES:
       if i + 1 >= n: Error("{x} without symbol following", vars())
       if len(tokens[i + 1][1].replace(DOT, "")) < 1: Error("{x} argument syntax", vars())
-      if tokens[i + 1][1].replace(DOT, "") in RESERVED: Error("{x} using reserved symbol %s" % tokens[i + 1][1], vars())
+      if tokens[i + 1][1].replace(DOT, "") in RESERVED_KEYWORDS: Error("{x} using reserved symbol %s" % tokens[i + 1][1], vars())
       t.append(x)
     elif x in DEFS:
-      t.append(x)  # mark the meaning of the following list with the opening symbol
-      if x in NAMEDEFS and i + 1 >= n: Error("{x} without name", vars())
-      if x in (ALIAS, DEF) and tokens[i + 1][1] in RESERVED: Error("{x} name is a reserved symbol %s" % tokens[i + 1][1], vars())
-      u, i = parseFile(file, tokens, i, DEFS[x], comments = x not in (NEWLIST, GROUP))  # recursive list parsing
-      t.append(u)  # add recursive list
-      if len(u) < {ALIAS: 2, DEF: 3}.get(x, 0): Error("{x} body with insufficient contents (forgot a closing keyword earlier?)", vars())
+      t.append(x)  # mark the meaning of the following list (or function name) with the opening symbol
+      if x in NAMEDEFS and i + 1 >= n: Error("{x} without name", vars())  # alias, (dyn)def
+      if x in NAMEDEFS and tokens[i + 1][1] in RESERVED_KEYWORDS: Error("{x} name is a reserved symbol %s" % tokens[i + 1][1], vars())
+      u, i = parseFile(file, tokens, i, DEFS[x], untilBefore = ENDGROUP if x == BREAK else None, comments = x not in (NEWLIST, GROUP))  # recursive list parsing
+      if len(u) < {ALIAS: 2, DEF: 3, DYNDEF: 3}.get(x, 0): Error("{x} body with insufficient contents (forgot a closing keyword earlier?)", vars())
+      if x != DEF: t.append(u)  # add recursive list
       if x == ERROR and "".join([u[0][0], u[0][-1]]) != '""': Error("{x} without error message" , vars())
-      elif x == DEF:
+      elif x in (DEF, DYNDEF):
         if not isinstance(u[0], str): Error("{x} name missing", vars())
         if not isinstance(u[1], str): Error("{x} #inputs missing", vars())
         try: int(u[1])
         except (TypeError, ValueError) as E: Error("{x} #inputs syntax {E}", vars())
         if not isinstance(tokens[i + 1][1], str): Error("{x} #outputs missing", vars())
         try: int(tokens[i + 1][1]) if tokens[i + 1][1] != UNKNOWN else UNKNOWN  # nil means any number of output
-        except (TypeError, ValueError) as E: Error("{x} #outputs syntax {t} {E}", {"x": x, "t": tokens[i + 1][1], "file": file, "l": tokens[i + 1][0]})
-      elif x == ASSERT:
+        except (TypeError, ValueError) as E: Error("{x} #outputs syntax {t} {E}", {"x": x, "t": tokens[i + 1][1], "file": file, "l": tokens[i + 1][0], "E": E})
+      elif x == ASSERT:  # second block of assert
         u, i = parseFile(file, tokens, i, DEFS[FROM])
         if len(u) == 0: Error("%s body with insufficient contents" % FROM, vars())
         t.append(u)  # parse second part of assert
+      if x == DEF:
+        statics[u[0]] = compileFunction(x, u[0], int(u[1]), u[2:], tokens[i + 1][1]); i += 1  # store function in static map
+        t.append(u[0])  # store info about the function definition in the token stream, so the runtime interpreter can put it in the namespace
     elif x == IGNORE:  # ignore everything until "ignore off"
       i += 1
       if i >= n: Error("{x} requires one argument", {"x": x, "file": file, "l": tokens[i + 1][0]})
       if tokens[i][1] not in (ON, OFF): Error("syntax error {g}", {"file": file, "l": tokens[i][0], "g": "ignore " + tokens[i][1]})
-      if tokens[i][1] == OFF: continue  # nothing to do
+      if tokens[i][1]     ==      OFF: continue  # nothing to do
       while i + 1 < n and not (tokens[i + 1][1] == IGNORE and tokens[i + 2][1] == OFF): i += 1
       i += 2
     elif x == DEBUG:
@@ -753,12 +839,12 @@ def parseFile(file, tokens, i = -1, until = END, comments = True):
 
 standard = os.path.join(os.path.dirname(os.path.abspath(__file__)), LIBS)
 def include(name, file, line):
-  if name in includes: return []  # skip already included files
+  if name in includes: return []  # skip already included files, return no new tokens
+  includes.add(name)  # allows mutually recursive including
   if name + ".awfl" in os.listdir(standard): path = os.path.join(standard, name)
   elif os.path.exists(name.strip(".").replace(".", os.sep) + ".awfl"): path = name.strip(".").replace(".", os.sep)
   else: raise ParsingError("include %r (transitively) missing from file %s on line %d" % (name, file, line))
   if debug: print("INCLD " + name)
-  includes.add(name)  # allows mutually recursive including
   with open(path + ".awfl", "r", encoding = "utf-8") as fd: data = fd.read()  # slurp entire file
   tokens = tokenize(data)
   if debug: print("Loaded %d tokens from %r" % (len(tokens), path))
@@ -768,49 +854,83 @@ def include(name, file, line):
 
 
 if __name__ == '__main__':
-  if '--help' in sys.argv: print("""AWFUL V0.2  (C) 2019 Arne Bachmann
+  if '--help' in sys.argv: print("""AWFUL V%s  (C) 2019-2020 Arne Bachmann
 
-python3 awfl.py [-O] [file1.awfl [file2.awfl [...]]] [--options]
+python[3] [-O] awfl.py [file1.awfl [file2.awfl [...]]] [<options>]
 
--O              Disable all runtime checks
---debug         Show parser info and enable live debugger
---decimals <n>  Set decimal computation precision to n digits
---help          Show this interpreter options
---interactive   In case of test case failure, drop into a python debug shell
---optimize      Remove most comments and assert statements from runtime
---repl          Start interactive AWFUL shell after running provided files
---stats         Show interpreter run statistics before interpreter shutdown
---tokens        Display tokens at parsetime
---words         Display all words in all namespaces
+-O               Remove Python assert statements from runtime
+--optimize       Remove Awful comments and asserts
+--decimals <n>   Set decimal computation precision to n digits (default: 1000)
+--run "token s"  Run given AWFUL commands and quit
+--repl           Start interactive AWFUL shell after processing given files
+--help           Show this interpreter options
 
-Debug command options: on, off, this\n"""); sys.exit(0)
-  debug, counter, calls, start_ts = False, 0, 0, time.time(); error, count = doctest.testmod()  # must define debug here to have it in test cases
+Debugging:
+--warn           Show runtime warnings to find code problems
+--debug          Show parser info and enable live debugger
+--calls          Display call hierarchy
+--names          Display all words in all namespaces
+--tokens         Display tokens at parsetime
+--fifo           Display last 15 tokens and stacks in case of error
+--stats          Show interpreter run statistics before interpreter shutdown
+--interactive    In case of test case failure, drop into a python debug shell
+--test           Run test cases
+
+Keywords and symbols:
+  Values:     nil False True " #
+  Grouping:   ( ) [ ![ ]
+  Maths:      + - * //
+  Stack:      nib bin pop dup
+  Functions:  def dyndef end & alias apply
+  Logic:      not if eq le ge as up rm
+  Structures: . pull push pushi
+  Files:      open create close read write
+  Control:    break error
+  Testing:    assert from debug ignore on off\n""" % VERSION); sys.exit(0)
+
+  debug, counter, calls, start_ts, statics, sut, lastCalls, lastStacks = False, 0, 0, time.time(), {}, False, Queue(), Queue()
+  error, count = doctest.testmod()  # must define debug here to have it in test cases
+  if '--test'     in sys.argv: sys.exit(0)
   if '--decimals' in sys.argv: index = sys.argv.index('--decimals'); decimal.getcontext().prec = int(sys.argv[index + 1]); del sys.argv[index:index+2]  # define decimal precision before applying float techniques
   else: decimal.getcontext().prec = 1000
   if error != 0: raise Exception("%d out of %d self-tests failed" % (error, count))
-  callstack, includes, stack, namespaces, aliases, debug, optimize, items = [], set(), [], [{}], {}, "system" if '--debug' in sys.argv else False, '--optimize' in sys.argv, []  # stack and global namespace
+  callstack, includes, stack, namespaces, aliases, optimize, items = [], set(), [], [{}], {}, '--optimize' in sys.argv, []  # stack and global namespace
+  debug, warn, displayTokens, displayNamespaces, displayCallstack, displayFifo = [_ in sys.argv for _ in ('--debug', '--warn', '--tokens', '--names', '--calls', '--fifo')]
   size = lambda l: sum([1 if not isinstance(_, list) else size(_) for _ in l]); assert 5 == size([1, 2, 3, [3, 4]])
   files = [_ for _ in sys.argv[1:] if _.endswith(".awfl")]
-  if debug: print("Running files: %s" % " ".join(files))
+  if len(files) == 0 and '--repl' not in sys.argv: print("No files specified"); sys.exit(1)
+  if files and debug: print("Running files: %s" % " ".join(files))
   for file in files:
     tokens = include(file.rstrip(".awfl"), file, 0)
     _ = parseFile(file, tokens); items.extend(_[0])
     if debug: print("Parsed %d items from %r" % (size(items), file))
-  error = interpret(TokenIter(items), namespaces, stack)
+  try:
+    error = interpret(TokenIter(items), namespaces, stack)
+  except RuntimeViolation as E: error = str(E)
   if '--repl' in sys.argv:
+    print("Awful REPL. Enter 'quit' to exit.")
     count = 0
     while True:
       count += 1
-      items = input("%4d-> " % count).replace("\n", "").replace("\r", "")
+      items = input("%4d-> " % count).replace("\n", " ").replace("\r", "")
       if items in ("exit", "quit"): break
-      tokens = tokenize(items)
-      items, _ = parseFile("repl", tokens)
-      error = interpret(TokenIter(items), namespaces, stack)
+      try:
+        tokens = tokenize(items)
+        items, _ = parseFile("repl", tokens)
+        error = interpret(TokenIter(items), namespaces, stack)
+      except ParsingError as E: print(str(E))
       if error: print(repr(error))
       print("STACK " + stackStr(stack))
+  elif '--run' in sys.argv:
+    items = " ".join([_.strip('"') for _ in sys.argv[sys.argv.index('--run') + 1:]])
+    tokens = tokenize(items)
+    items, _ = parseFile("repl", tokens)
+    error = interpret(TokenIter(items), namespaces, stack)
+    if error: print(repr(error))
   if error: print(namespaceStr(namespaces))
   if stack: print("STACK " + stackStr(stack))
   if error: print("ERROR " + error)
   if '--stats' in sys.argv:
     print("Number of instructions processed: %d (%.0f/s)" % (counter, counter / (time.time() - start_ts)))
     print("Number of function calls:         %d (%.0f/s)" % (calls, calls / (time.time() - start_ts)))
+    print("Runtime:                          %.2f s"      % (time.time() - start_ts))

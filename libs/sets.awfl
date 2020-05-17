@@ -1,4 +1,4 @@
-# Set operations #
+# Set operations
 ### set-create, set-as-list, set-add, set-from-list, set-remove, set-union, set-intersect, set-difference
 
 include basicmaths
@@ -6,7 +6,7 @@ include lists
 include loops
 
 
-## Create an empty set ##
+## Create an empty set
 ```
 def set-create  0
   7 [ ] :type pushi
@@ -14,13 +14,13 @@ end  1
 ```
 
 
-## Convert to list ##
+## Convert to list
 def set-as-list  1
   4 swap :type pushi  # convert internal type
 end  1  # tested below
 
 
-## Add one element ##
+## Add one element
 ```
 def set-add  2          # set element
   as value
@@ -41,18 +41,18 @@ from
 end
 
 
-## Convert from list ##
+## Convert from list
 def set-from-list  1
   :num pull as num
   as list'
   set-create as result
 
-  def insert  1
+  def set-from-list'  1
     list' swap pull popnos
     result swap set-add up result
   end  0
 
-  0 num 1 &insert for
+  0 num 1 &set-from-list' for
   result
 end  1
 assert
@@ -62,7 +62,7 @@ from
 end
 
 
-## Check existence of an value ##
+## Check existence of an value
 def set-contains  2   # set value
   list-find pop
 end  1
@@ -75,7 +75,7 @@ from
 end
 
 
-## Remove one element ##
+## Remove one element
 ```
 def set-remove  2     # set element
   as value
@@ -95,13 +95,13 @@ from
 end
 
 
-## Union ##
+## Union
 ```
 def set-union  2      # set1 set2
   as scd              # set1   scd -> set2
   as set              #   set -> set1
 
-  def add  1            # i
+  def set-union'  1            # i
     scd swap pull   # keys elem-i
     popnos          # elem-i
     set swap        # set elemi add elem
@@ -109,7 +109,7 @@ def set-union  2      # set1 set2
     up ...set
   end  0
 
-  0 scd.num 1 &add for
+  0 scd.num 1 &set-union' for
   set
 end  1                # set (combined)
 ```
@@ -126,14 +126,14 @@ from
   set-as-list
 end
 
-## Intersection ##
+## Intersection
 ```
 def set-intersect  2      # set1 set2
   as scd                  # set   scd -> set2
   as set                  #    set -> set1
   set-create as new       #    new -> result
 
-  def check  1
+  def set-intersect'  1
     set swap pull     # set-keys elem-i
     popnos            # elem-i
     dup scd rot3      # elem-i scd.keys elem-i
@@ -144,7 +144,7 @@ def set-intersect  2      # set1 set2
     up ...new         #    new -> (updated)
   end  0
 
-  0 set.num 1 &check for
+  0 set.num 1 &set-intersect' for
   new
 end  1                # set (combined)
 ```
@@ -158,13 +158,13 @@ from
 end
 
 
-## Difference ##
+## Difference
 ```
 def set-difference  2   # set1 set2
   as scd
   as set
 
-  def check  1                # i
+  def set-difference'  1                # i
     scd swap pull popnos      # elem-i
     set swap list-find        # T|F index|nil
     as index                  #    index -> index|nil
@@ -173,7 +173,7 @@ def set-difference  2   # set1 set2
     up ...set                 # update set structure
   end  0
 
-  0 scd.num 1 &check for
+  0 scd.num 1 &set-difference' for
   set
 end  1                        # set (combined)
 ```

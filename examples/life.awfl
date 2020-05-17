@@ -1,0 +1,142 @@
+# Game of life
+### life-init 0/0, life-compute 0/0
+
+include maths         # floor, random_byte
+include termgraph     # term-fill, term-print, TERMINAL
+
+
+20  as LIFE_WIDTH
+12  as LIFE_HEIGHT
+:O  as CELL_CHAR
+:_  as CELL_DEAD
+
+LIFE_WIDTH LIFE_HEIGHT *
+    as LIFE_SIZE
+
+
+## Initialize the playing field with pseudo-random cells
+```
+def life-init  0
+  LIFE_WIDTH LIFE_HEIGHT :_ term-fill
+  LIFE_SIZE 1.5 / floor as points   # cells to set in the field
+
+  def life-init'  1
+    pop
+    TERMINAL
+    random_byte LIFE_HEIGHT %
+    random_byte LIFE_WIDTH  %
+    2 list-from-stack CELL_CHAR array-set up TERMINAL
+  end  0
+
+  points &life-init' for-range
+end  0
+```
+assert
+  [
+    [ :O :O :_ ]
+    [ :O :O :_ ]
+    [ :O :O :_ ]
+    [ :_ :O :_ ]
+    [ :O :O :_ ]
+  ]
+from
+  life-init TERMINAL  # using pseudo-random number generator from a known start value
+end
+
+
+## Compute next life-cycle step
+```
+def life-compute  0
+  TERMINAL as last   # deep copy screen buffer for processing each cell from old state
+
+  def frame-col  1
+    as x'
+    x' is-zero y' is-zero and if break    # discount self-cell (at center) when counting alive neighbours
+    y y' LIFE_HEIGHT + + LIFE_HEIGHT %    # wrapped-around parent cell for frame location
+    x x' LIFE_WIDTH  + + LIFE_WIDTH  %
+    2 list-from-stack                     # array index (y, x)
+    ......last swap array-get             # get cell at computed offset
+    CELL_CHAR string-eq if (
+      frame_count inc1 up frame_count
+    )
+  end  0
+  assert
+    1
+    1
+    2
+  from
+    2 up LIFE_HEIGHT 2 up LIFE_WIDTH
+    [ [ :_ :O ] [ :_ :_ ] ] up last
+    0 as frame_count
+    0 as x 0 as y  # current field col and row
+    0 as y'        # current frame row
+    -1 2 1 &frame-col for  # current frame col
+  end
+
+  def frame-row  1
+    as y'
+    -1 2 1 &frame-col for  # WARN will count cells two times if field's width is less than 3
+  end  0
+  assert
+    1
+  from
+    2 up LIFE_HEIGHT 2 up LIFE_WIDTH
+    [ [ :_ :O ] [ :_ :_ ] ] up last
+    0 as frame_count
+    0 as x 0 as y  # current field col and row
+    0 frame-row    # current frame row
+    frame_count
+  end
+
+  def life-col  1  # process frame around current x/y cell
+    as x
+    0 as frame_count      # count living or born cells around current x/y cell
+    -1 2 1 &frame-row for
+    TERMINAL y x 2 list-from-stack
+    frame_count 1 le if ( CELL_DEAD array-set up TERMINAL break )  # cell dies from underpopulation
+    frame_count 4 ge if ( CELL_DEAD array-set up TERMINAL break )  # cell dies from overpopulation
+                          CELL_CHAR array-set up TERMINAL          # cell survices or is born
+  end  0
+
+  def life-row  1
+    as y
+    LIFE_WIDTH &life-col for-range  # x
+  end  0
+
+  LIFE_HEIGHT  &life-row for-range  # y
+end  0
+```
+assert
+  # OO__  next round
+  # OOO_
+  # ___O
+  # OO_O
+
+  [ [ :O :O :_ :_ ] [ :O :O :O :_ ] [ :_ :_ :_ :O ] [ :O :O :_ :O ] ]
+from
+  # O___  initial
+  # OO__
+  # _O_O
+  # OOOO
+
+  4 up LIFE_HEIGHT 4 up LIFE_WIDTH
+  [ [ :O :_ :_ :_ ] [ :O :O :_ :_ ] [ :_ :O :_ :O ] [ :O :O :O :O ] ] up TERMINAL  # TODO use dynamic instead of literal array
+  life-compute TERMINAL
+end
+
+
+# Main program
+"Number of rounds: " input as-number as rounds
+"Creating game field" println
+life-init
+term-print
+
+def step  1
+  as-string
+  nl swap string-concat
+  ": Computing next step" string-concat println
+  life-compute  # updates directly the TERMINAL
+  term-print
+end  0
+
+rounds &step for-range
