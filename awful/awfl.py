@@ -7,7 +7,7 @@ assert sys.version_info >= (3, 5)
 from functools import reduce
 
 
-VERSION = "0.5"
+VERSION = "0.5.1"
 
 # Reserved language words and operators
 EOL, TAIL_RECURSION = '__EOL__', '__TAILR__'
@@ -65,7 +65,7 @@ class TokenIter(object):
 # Interactive input for stdin reading
 try:  # from https://gist.github.com/payne92/11090057
   import msvcrt
-  getch = msvcrt.getch
+  getch = msvcrt.getwch
 except:  # Linux
   import termios, tty
   def getch():

@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
   name = 'awful',
-  version = "0.5",
+  version = "0.5.1",  # TODO use same version in awfl.py
   python_requires = '>=3.5',  # https://www.python.org/dev/peps/pep-0508/#environment-markers
   description = "Arguably Worst F*cked-Up Language",
   classifiers = [c.strip() for c in """
