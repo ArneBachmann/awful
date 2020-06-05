@@ -1,0 +1,17 @@
+# Example how to pass command line arguments to an awful script
+#   Run via: awful examples/main.awfl --main One 2
+
+include lists
+include streams
+
+
+def main  1  # args
+  as args
+
+  dyndef show  1
+    args swap pull  # args nth-str
+    popnos println
+  end  0
+
+  args list-len &show for-range
+end  0

@@ -2,7 +2,7 @@
 ### slurp 1/1, fprint 2/1, fprintln 2/1, print 1/0, eprint 1/0, println 1/0, eprintln 1/0
 
 
-include lists
+include lists    # list-append
 include types
 
 

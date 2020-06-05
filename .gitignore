@@ -1,3 +1,5 @@
 awful.egg-info/
 awful/__pycache__/
 build/
+dist/
+__pycache__/
