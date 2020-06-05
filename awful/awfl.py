@@ -857,8 +857,9 @@ def include(name, file, line):
 if __name__ == '__main__':
   if '--help' in sys.argv: print("""AWFUL V%s  (C) 2019-2020 Arne Bachmann
 
-python[3] [-O] awfl.py [file1.awfl [file2.awfl [...]]] [<options>]
+python[3] [-O] awfl.py [file1.awfl [file2.awfl [...]]] [<options>] [--main [<options>]]
 
+--main <args>    Run the main function passing it the remaining arguments as a list of strings
 -O               Remove Python assert statements from runtime
 --optimize       Remove Awful comments and asserts
 --decimals <n>   Set decimal computation precision to n digits (default: 1000)
@@ -907,6 +908,9 @@ Keywords and symbols:
     if debug: print("Parsed %d items from %r" % (size(items), file))
   try:
     error = interpret(TokenIter(items), namespaces, stack)
+    if '--main' in sys.argv and not error:
+      stack.append(makeList([makeString(arg) for arg in sys.argv[sys.argv.index('--main') + 1:]]))  # add arguments to stack as a list of strings
+      error = interpret(TokenIter(["main"]), namespaces, stack)
   except RuntimeViolation as E: error = str(E)
   if '--repl' in sys.argv:
     print("Awful REPL. Enter 'quit' to exit.")

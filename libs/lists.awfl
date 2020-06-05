@@ -188,8 +188,8 @@ end
 
 
 ## Split a list at given substrings
-#def list-split  2  # list index
-#end  2             # prefix suffix
+#def list-split  2  # list separator
+#end  2             # list-of-substrings
 
 
 ## Join substrings with a separator
