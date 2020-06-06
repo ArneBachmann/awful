@@ -111,19 +111,19 @@ end
 def forbreak  4     # from to step func
   as func'          # index -> -
   False as stopped  # flag to stop the loop
-  nil as returned   # return value
+  nil as returned   # return value default
 
-  def break'  1           # can be called to stop the loop
-    True up .....stopped
-    up      .....returned
+  def break'  1            # can be called to stop the loop
+    up      .....returned  # set return value from stack
+    True up .....stopped   # mark the break
   end  0
 
-  def each  1                # index
+  def forbreak-each  1       # index
     ...stopped if break pop  # ignore this iteration (until last)
     ...func' apply           # call the original function
   end  0
 
-  &each for         # replace call to func by each function
+  &forbreak-each for         # replace call to func by each function
   returned
 end  1              # return value from loop
 ```
@@ -162,7 +162,7 @@ end
 
 
 ## Conditional loop
-def while 2                   # predicate 0->bool function 0->0
+def while 2                   # predicate 0/bool function 0/0
   as func
   as pred
 

@@ -239,6 +239,7 @@ Please note that many library implementations favor the use of other existing li
 ## Debugging options
 - Insert print statements like `stdout "Bla" printfn`
 - Insert `debug this` for stack prints
+  - Or put `:X debug this pop` into the source to mark the current code location with `X`
 - Use `debug on` and `debug off` to enable detailed output for a passage of code
 - Enable loggers via `--warn` and `--debug`
 - Use `--calls`, `--names`, `--tokens`

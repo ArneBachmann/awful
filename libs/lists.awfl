@@ -66,7 +66,40 @@ from
 end
 
 
-## Helper function to copy elements between list structures
+## Flat list comparison (no nested lists allowed)
+```
+def list-eq  2  # a b
+  as b
+  as a
+  a :num pull popnos as len
+  b :num pull popnos
+  len ne if break False
+
+  def cmp  1
+    as i
+    a i pull popnos
+    b i pull popnos
+    ne if break False break'  # set result to False
+  end  0
+
+  0 len 1 &cmp forbreak
+  is-nil  # loop returns nil if never interrupted -> no element differed
+end  1  # equal:bool
+```
+assert
+  True
+  False
+  True
+  True
+from
+  [ ] [ ] list-eq
+  [ ] [ 1 ] list-eq
+  [ 2 ] [ 2 ] list-eq
+  [ 2 1 3 [ 1 ] ] [ 2 1 3 [ 1 ] ] list-eq  # not sure how this works, but it does
+end
+
+
+## Helper function to copy elements between list structures (also usable as slice operation)
 ```
 def list-copy  5                  # source-list target-list from-index to-index count
   as count
@@ -95,7 +128,7 @@ def list-copy  5                  # source-list target-list from-index to-index 
   to count + lt if (              # if num is too low
     to count + swap :num pushi    # increase size WARN could leave out elements before "to"
   )
-end  1
+end  1  # target list
 ```
 assert
   [ 1 2 3 4 5 ]
@@ -187,9 +220,22 @@ from
 end
 
 
-## Split a list at given substrings
-#def list-split  2  # list separator
-#end  2             # list-of-substrings
+## Append one element to a list
+```
+def list-append  2                # list value
+  as value
+  as list'
+  value list'   list'.num push    # store new value
+  list'.num 1 + swap :num pushi   # increase length
+end  1                            # list-with-value
+```
+assert
+  [ 1 2 False 3 ]
+  [ 1 True [ ]  ]
+from
+  [ 1 2 False ] 3 list-append
+  [ 1 True  ] [ ] list-append
+end
 
 
 ## Join substrings with a separator
@@ -203,22 +249,6 @@ end
 #  rot3 swap        # insert list index
 #  list-split       # insert prefix suffix
 #end
-
-
-## Append one element to a list
-```
-def list-append  2                # list value
-  as value
-  as list'
-  value list' list'.num push      # store new value
-  list'.num 1 + swap :num pushi   # increase length
-end  1                            # list-with-value
-```
-assert
-  [ 1 2 False 3 ]
-from
-  [ 1 2 False ] 3 list-append
-end
 
 
 ## Remove one element replacing it with the one at the last, reducing the list size by one
@@ -395,7 +425,7 @@ end  1              # mapped list
 assert
   [ 0 2 3 4 ]
 from
-  def times2  1
+  dyndef times2  1
     2 *
   end  1
   [ 0 1 1.5 2 ] &times2 map
@@ -583,7 +613,7 @@ end
 
 ## Consume elements from stack into one list
 ```
-def list-from-stack  2    # elements num
+def list-from-stack  2    # elements... num
   as n
   list-create
 
@@ -690,3 +720,54 @@ assert
 from
   [ 3 5 2 1 0 -4 ] list-sort
 end
+
+
+## Split a list at separator-list occurrences (mostly for string-split)
+```
+def list-split  2  # full-list separator-sublist
+  as list-split-sep
+  as list-split-list
+
+  list-split-sep list-len  as list-split-sep-len
+  list-create              as list-split-result
+  0                        as list-split-index
+  0                        as list-split-last
+
+  list-split-sep-len is-zero if (  # splitting by empty list makes one-element sub-lists
+    dyndef  elem-to-list  1
+      1 list-from-stack  # make a one-element list
+    end  1
+    list-split-list &elem-to-list map
+    break
+  )
+
+  def list-split-check-index  0
+    list-split-list list-create list-split-index 0 list-split-sep-len list-copy  # slice sub-list for separator check
+    list-split-sep list-eq  # slice == sep ?
+    if (  # extract last..index as a sublist
+      list-split-list list-create list-split-last 0 list-split-index list-split-last - list-copy  # slice preceding sub-list
+      list-split-result swap list-append  up list-split-result
+      list-split-index list-split-sep-len + dup up list-split-index up list-split-last
+      break
+    )
+    list-split-index inc1  up list-split-index
+  end  0
+
+  dyndef index-lower  0
+    list-split-index list-split-list list-len list-split-sep-len - le
+  end  1
+
+  &index-lower &list-split-check-index while  # split all sublists except remainder
+
+  list-split-list list-create list-split-last 0 list-split-list list-len list-split-last - list-copy  # extract remainder
+  list-split-result swap list-append  up list-split-result  # append remainder
+
+  list-split-result
+end  1             # list-of-split-lists
+```
+assert [ [ 1 2 ] [ 4 5 ] ]   from  [ 1 2 3 4 5 ] [ 3 ]   list-split  end
+assert [ [ ] [ 3 4 5 ] ]     from  [ 1 2 3 4 5 ] [ 1 2 ] list-split  end
+assert [ [ 1 2 3 ] [ ] ]     from  [ 1 2 3 4 5 ] [ 4 5 ] list-split  end
+assert [ [ ] [ ] ]           from  [ 1 2 3 ] [ 1 2 3 ]   list-split  end
+assert [ [ 1 ] [ 3 ] [ 5 ] ] from  [ 1 2 3 2 5 ] [ 2 ]   list-split  end
+assert [ [ 1 ] [ 2 ] [ 3 ] ] from  [ 1 2 3 ] [ ]         list-split  end

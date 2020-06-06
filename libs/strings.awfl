@@ -1,5 +1,5 @@
 # String operations
-### string-from-list 1/1, string-concat 2/1, string-concat-list 2/1, string-split-at 2/2, string-len 1/1, string-insert-at 3/1, string-eq 2/1
+### string-from-list 1/1, string-to-list 1/1, string-concat 2/1, string-concat-list 2/1, string-split-at 2/2, string-len 1/1, string-insert-at 3/1, string-eq 2/1, string-split 2/1
 
 include basicmaths
 include lists
@@ -18,9 +18,8 @@ def string-from-list  1   # l
     up ...l               #   l -> l
   end  0
 
-  0 l.num 1               # l num
-  &convert for            # (loop)
-  3 l :type pushi         # convert type and leave string on stack
+  l.num &convert for-range  # (loop)
+  3 l :type pushi           # convert type and leave string on stack
 end  1
 ```
 assert
@@ -32,6 +31,28 @@ from
   [ 97 98 99 ] string-from-list
   54.343 string-from-list
 end
+
+
+## Convert a string into a list (of codepoints)
+```
+def string-to-list  1
+  as s
+
+  dyndef convert  1  # i
+    dup              # i i
+    s swap pull      # i s char
+    swapover         # char s i
+    pushi            # s (updated)
+    up ...s
+  end  0
+
+  s.num &convert for-range  # (loop)
+  4 s :type pushi
+end  1
+```
+assert [ ]           from  ""     string-to-list  end
+assert [ 88 ]        from  :X     string-to-list  end
+assert [ 97 98 99 ]  from  "abc"  string-to-list  end
 
 
 ## Concatenate two strings
@@ -74,7 +95,7 @@ from
 end
 
 
-## String splitting
+## String splitting at index
 ```
 def string-split-at  2    # string index
   list-split-at           # list1 list2
@@ -91,6 +112,18 @@ from
   "abcde" 3 string-split-at
 end
 assert "abcde" from "abcde" 2 string-split-at string-concat end
+
+
+## String splitting by separator
+```
+def string-split  2   # string separator
+  string-to-list swap
+  string-to-list swap
+  list-split  &string-from-list map
+end  1  # list of strings
+```
+assert [ "ab" :c "de" ]  from  "abXcXde" :X string-split  end
+assert [ :a :b :c ]      from  "abc"     "" string-split  end
 
 
 ## Get string length
@@ -131,36 +164,14 @@ end
 
 ## Compare two strings
 ```
-def string-eq  2  # s t
-  as b as a
-  a :num pull popnos as len
-  b :num pull popnos
-  len ne if break False
-
-  def cmp  1
-    as i
-    a i pull popnos
-    b i pull popnos
-    ne if break False break'    # set result to False
-  end  0
-  0 len 1 &cmp forbreak
-  is-nil
-end  1  # boolean equality
-```
-assert
-  False
-  True
-  False
-  True
-  False
-  False
-  False
-from
-  :a :ab  string-eq
-  :ab :ab string-eq
-  :xy :xz string-eq
-  :x  :x  string-eq
-  :x  :O  string-eq
-  ""  " " string-eq
-  " "  "" string-eq
+alias string-eq
+  list-eq
 end
+```
+assert  False  from  :a :ab  string-eq  end
+assert  True   from  :ab :ab string-eq  end
+assert  False  from  :xy :xz string-eq  end
+assert  True   from  :x  :x  string-eq  end
+assert  False  from  :x  :O  string-eq  end
+assert  False  from  ""  " " string-eq  end
+assert  False  from  " "  "" string-eq  end

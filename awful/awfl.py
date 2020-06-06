@@ -7,7 +7,7 @@ assert sys.version_info >= (3, 5)
 from functools import reduce
 
 
-VERSION = "0.5.2"
+VERSION = "0.5.3"
 
 # Reserved language words and operators
 EOL, TAIL_RECURSION = '__EOL__', '__TAILR__'
@@ -441,7 +441,7 @@ def interpret(tokens, namespaces, stack, breaker = None):
     while True:
       retval = evaluate(tokens, namespaces, stack)  # runs one operation that potentially consumes more than one token
       if retval is BREAK: return breaker  # stop processing current block, and optionally return BREAK signal to outer caller (is None only outside a group)
-      if retval:          return retval  # only cases are BREAK, TAIL_RECURSION and error message (or None for OK)
+      if retval:          return retval   # only cases are BREAK, TAIL_RECURSION and error message (or None for OK)
   except StopIteration: pass  # end of token stream reached
 
 def evaluate(tokens, namespaces, stack):
@@ -700,10 +700,12 @@ def evaluate(tokens, namespaces, stack):
             "\n- ".join(lastCalls) if displayFifo else "",
             "\n- ".join([stackStr(s, sep = " ") for s in lastStacks]) if displayFifo else ""
           )
-    except Exception as E: pass
+    except Exception as EE: E = str(E)
     if E:
-      try: print("FAILD %s in %s" % (E, test) + "\nSTWAS " + stackStr(isstack, sep = SEP) + repr(isstack))
-      except: print("ERROR %r" % test)
+      print(isstack)
+      try:    print("FAILD %s in %s" % (E, test) + "\nSTWAS " + stackStr(isstack, sep = SEP) + repr(isstack))
+      except AssertionError as F: raise F
+      except Exception as G: print("ERROR %s %r" % (test, G))
       if '--interactive' in sys.argv: import pdb; pdb.set_trace()
     return
 
